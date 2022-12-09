@@ -41,7 +41,7 @@ class FAPGToTaksiran extends Command
         $sql = "SELECT
             idFAPG,
             noKtp
-        FROM tran_fapg
+        FROM tran_fapg_copy1
         -- WHERE idFAPG > 1112 AND idFAPG < 10000
         -- WHERE idFAPG >= 10000 AND idFAPG < 20000
         -- WHERE idFAPG >= 20000 AND idFAPG < 30000
@@ -53,7 +53,7 @@ class FAPGToTaksiran extends Command
         -- WHERE idFAPG >= 80000 AND idFAPG < 90000
         -- WHERE idFAPG >= 90000 AND idFAPG < 100000
         -- WHERE idFAPG >= 100000 AND idFAPG < 110000
-        WHERE idFAPG >= 110000 AND idFAPG < 120000
+        -- WHERE idFAPG >= 110000 AND idFAPG < 120000
         ";
         $dataFAPG = DB::connection('mysql')->select(DB::raw($sql));
 
@@ -114,7 +114,7 @@ class FAPGToTaksiran extends Command
                 $dtInsT = (object) $dtInsT;
                 $dtInsTApprove = (object) $dtInsTApprove;
 
-                $sqlInsertStatement = "INSERT INTO tran_taksiran (
+                $sqlInsertStatement = "INSERT INTO tran_taksiran_copy1 (
                     idFAPG,
                     jumlahBarang,
                     namaJaminan,
