@@ -38,6 +38,8 @@ class TaksiranToGadai extends Command
      */
     public function handle()
     {
+        ini_set('memory_limit', '-1');
+
         $sql = "SELECT
             idTaksiran,
             fpg.noKtp,
@@ -47,7 +49,7 @@ class TaksiranToGadai extends Command
             referensiNpk,
             referensiNama,
             referensiCif
-        FROM tran_taksiran_copy1 tks
+        FROM tran_taksiran tks
         LEFT JOIN tran_fapg fpg ON tks.idFAPG = fpg.idFAPG
         LEFT JOIN tblcustomer cst ON cst.idCustomer = fpg.idCustomer
         WHERE isFinal = 1";
@@ -158,14 +160,16 @@ class TaksiranToGadai extends Command
                 if(count($dataGadai))
                 {
                     foreach ($dataGadai as $index => $dataG) {
-                        array_push($dataTemp, (array) $dataG);
+                        // array_push($dataTemp, (array) $dataG);
+
+                        DB::connection('mysql')->table('trans_gadai')->insert((array) $dataG);
                     }
                 }
                 // dd($sql);
                 echo "$indexT \n";
             }
 
-            DB::connection('mysql')->table('trans_gadai_copy1')->insert($dataTemp);
+            DB::connection('mysql')->table('trans_gadai')->insert($dataTemp);
             // dd($dataTemp);
         }
 
