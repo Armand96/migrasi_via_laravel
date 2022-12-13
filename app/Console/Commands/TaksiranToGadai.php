@@ -48,9 +48,11 @@ class TaksiranToGadai extends Command
             fpg.idFAPG,
             referensiNpk,
             referensiNama,
-            referensiCif
+            referensiCif,
+            fkFatg
         FROM tran_taksiran tks
         LEFT JOIN tran_fapg fpg ON tks.idFAPG = fpg.idFAPG
+        LEFT JOIN tran_taksirawal awl ON awl.idTaksirawal = fpg.idTaksirawal
         LEFT JOIN tblcustomer cst ON cst.idCustomer = fpg.idCustomer
         WHERE isFinal = 1";
 
@@ -139,7 +141,7 @@ class TaksiranToGadai extends Command
                     1 AS isApprovalFinal,
                     tgl_cair AS tglCair,
                     tgl_cair AS tglPendanaan,
-                    status_funding AS statusFunding,
+                    -- status_funding AS statusFunding,
                     0 AS idUserCetakSbg ,
                     is_cetak_sbg AS isCetakSbg,
                     0 AS idUserCetakKwitansi,
@@ -152,24 +154,26 @@ class TaksiranToGadai extends Command
                 LEFT JOIN tblasaljaminan ON asal_jaminan = tblasaljaminan.namaAsalJaminan
                 LEFT JOIN tblproduk ON fk_produk = kodeProduk
                 LEFT JOIN tblsektorekonomi ON fk_sektor_ekonomi = kodeSektorEkonomi
-                WHERE no_id = '$dataT->noKtp' LIMIT 1
+                WHERE fk_fatg = '$dataT->fkFatg'
+                -- LIMIT 1
                 ";
 
                 $dataGadai = DB::connection('mysql')->select(DB::raw($sql));
 
                 if(count($dataGadai))
                 {
+                    echo "has data -- $dataT->fkFatg \t";
                     foreach ($dataGadai as $index => $dataG) {
-                        // array_push($dataTemp, (array) $dataG);
+                        array_push($dataTemp, (array) $dataG);
 
-                        DB::connection('mysql')->table('trans_gadai')->insert((array) $dataG);
+                        // DB::connection('mysql')->table('trans_gadai')->insert((array) $dataG);
                     }
                 }
                 // dd($sql);
                 echo "$indexT \n";
             }
 
-            DB::connection('mysql')->table('trans_gadai')->insert($dataTemp);
+            DB::connection('mysql')->table('trans_gadai_copy3')->insert($dataTemp);
             // dd($dataTemp);
         }
 

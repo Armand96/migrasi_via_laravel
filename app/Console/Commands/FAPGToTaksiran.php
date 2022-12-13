@@ -12,7 +12,7 @@ class FAPGToTaksiran extends Command
      *
      * @var string
      */
-    protected $signature = 'update:fapg_taksir';
+    protected $signature = 'update:fapg_taksir {--limit=-1}';
 
     /**
      * The console command description.
@@ -38,24 +38,30 @@ class FAPGToTaksiran extends Command
      */
     public function handle()
     {
+        // $sql = "SELECT
+        //     idFAPG,
+        //     noKtp
+        // FROM tran_fapg
+        // ";
+
+        $stringss = '';
+        $limit = $this->option('limit') == -1 ? -1 : $this->option('limit');//-1;
+        if ($limit != -1) {
+            $stringss = "LIMIT $limit,20000";
+        }
+
         $sql = "SELECT
             idFAPG,
-            noKtp
-        FROM tran_fapg_copy1
-        -- WHERE idFAPG > 1112 AND idFAPG < 10000
-        -- WHERE idFAPG >= 10000 AND idFAPG < 20000
-        -- WHERE idFAPG >= 20000 AND idFAPG < 30000
-        -- WHERE idFAPG >= 30000 AND idFAPG < 40000
-        -- WHERE idFAPG >= 40000 AND idFAPG < 50000
-        -- WHERE idFAPG >= 50000 AND idFAPG < 60000
-        -- WHERE idFAPG >= 60000 AND idFAPG < 70000
-        -- WHERE idFAPG >= 70000 AND idFAPG < 80000
-        -- WHERE idFAPG >= 80000 AND idFAPG < 90000
-        -- WHERE idFAPG >= 90000 AND idFAPG < 100000
-        -- WHERE idFAPG >= 100000 AND idFAPG < 110000
-        -- WHERE idFAPG >= 110000 AND idFAPG < 120000
+            no_fatg
+        FROM tran_fapg fpg
+        LEFT JOIN tran_taksirawal awl ON awl.idTaksirAwal = fpg.idTaksirAwal
+        LEFT JOIN metta_taksirawal mtawl ON no_fatg = fkFatg
+        WHERE idFAPG = 215561
+        $stringss
         ";
+
         $dataFAPG = DB::connection('mysql')->select(DB::raw($sql));
+        $tempData = [];
 
         foreach ($dataFAPG as $index => $dataF) {
             $sqlKedua = "SELECT
@@ -64,9 +70,9 @@ class FAPGToTaksiran extends Command
                 berat_kotor,
                 keterangan_barang,
                 jumlah,
-                total_takasir
-            FROM dummy_getDataTaksir
-            WHERE no_id = '$dataF->noKtp'";
+                nilai_taksir
+            FROM metta_taksiran_dan_detail
+            WHERE fk_fatg = '$dataF->no_fatg'";
             $dataTaksir = DB::connection('mysql')->select(DB::raw($sqlKedua));
 
             $dtInsT = array(
@@ -98,7 +104,7 @@ class FAPGToTaksiran extends Command
                     $tempAvgKarat += $dataT->karat;
                     $dtInsT['sumBeratKotor'] += $dataT->berat_kotor;
                     $dtInsT['sumBeratBersih'] += $dataT->berat_bersih;
-                    $dtInsT['totalTaksiran'] += $dataT->total_takasir;
+                    $dtInsT['totalTaksiran'] += $dataT->nilai_taksir;
                 }
 
                 $dtInsT['namaJaminan'] = substr($dtInsT['namaJaminan'], 0, -2);
@@ -111,10 +117,13 @@ class FAPGToTaksiran extends Command
                 $dtInsTApprove['levelPenaksir'] = 1;
                 $dtInsTApprove['isFinal'] = 1;
 
+                // array_push($tempData, $dtInsT);
+                // array_push($tempData, $dtInsTApprove);
+
                 $dtInsT = (object) $dtInsT;
                 $dtInsTApprove = (object) $dtInsTApprove;
 
-                $sqlInsertStatement = "INSERT INTO tran_taksiran_copy1 (
+                $sqlInsertStatement = "INSERT INTO tran_taksiran (
                     idFAPG,
                     jumlahBarang,
                     namaJaminan,
