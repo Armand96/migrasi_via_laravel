@@ -43,6 +43,7 @@ class FAPGToTaksiran extends Command
         //     noKtp
         // FROM tran_fapg
         // ";
+        ini_set('memory_limit', '-1');
 
         $stringss = '';
         $limit = $this->option('limit') == -1 ? -1 : $this->option('limit');//-1;
@@ -56,123 +57,144 @@ class FAPGToTaksiran extends Command
         FROM tran_fapg fpg
         LEFT JOIN tran_taksirawal awl ON awl.idTaksirAwal = fpg.idTaksirAwal
         LEFT JOIN metta_taksirawal mtawl ON no_fatg = fkFatg
-        WHERE idFAPG = 215561
+        -- WHERE idFAPG = 215561
         $stringss
         ";
 
         $dataFAPG = DB::connection('mysql')->select(DB::raw($sql));
-        $tempData = [];
+        $sqlInsertStatement = "INSERT INTO tran_taksiran (
+            idFAPG,
+            jumlahBarang,
+            namaJaminan,
+            karat,
+            beratKotor,
+            beratBersih,
+            avgKarat,
+            sumBeratKotor,
+            sumBeratBersih,
+            totalTaksiran,
+            keterangan,
+            levelPenaksir,
+            isFinal
+        ) VALUES";
+        // $tempData = [];
+        $dataFAPG = array_chunk($dataFAPG, 1000);
 
-        foreach ($dataFAPG as $index => $dataF) {
-            $sqlKedua = "SELECT
-                karat,
-                berat_bersih,
-                berat_kotor,
-                keterangan_barang,
-                jumlah,
-                nilai_taksir
-            FROM metta_taksiran_dan_detail
-            WHERE fk_fatg = '$dataF->no_fatg'";
-            $dataTaksir = DB::connection('mysql')->select(DB::raw($sqlKedua));
+        foreach ($dataFAPG as $key => $dataC) {
+            foreach ($dataC as $index => $dataF) {
+                # code...
+                $sqlKedua = "SELECT
+                    karat,
+                    berat_bersih,
+                    berat_kotor,
+                    keterangan_barang,
+                    jumlah,
+                    nilai_taksir
+                FROM metta_taksiran_dan_detail
+                WHERE fk_fatg = '$dataF->no_fatg'";
+                $dataTaksir = DB::connection('mysql')->select(DB::raw($sqlKedua));
 
-            $dtInsT = array(
-                'idFAPG' => $dataF->idFAPG,
-                'jumlahBarang' => 0,
-                'namaJaminan' => "",
-                'karat' => "",
-                'beratKotor' => "",
-                'beratBersih' => "",
-                'avgKarat' => 0,
-                'sumBeratKotor' => 0,
-                'sumBeratBersih' => 0,
-                'totalTaksiran' => 0,
-                'keterangan' => "",
-                'levelPenaksir' => 0,
-                'isFinal' => 0,
-            );
+                $dtInsT = array(
+                    'idFAPG' => $dataF->idFAPG,
+                    'jumlahBarang' => 0,
+                    'namaJaminan' => "",
+                    'karat' => "",
+                    'beratKotor' => "",
+                    'beratBersih' => "",
+                    'avgKarat' => 0,
+                    'sumBeratKotor' => 0,
+                    'sumBeratBersih' => 0,
+                    'totalTaksiran' => 0,
+                    'keterangan' => "",
+                    'levelPenaksir' => 0,
+                    'isFinal' => 0,
+                );
 
-            $tempAvgKarat = 0;
+                $tempAvgKarat = 0;
 
-            if(count($dataTaksir))
-            {
-                foreach ($dataTaksir as $indexTaksir => $dataT) {
-                    $dtInsT['jumlahBarang'] += $dataT->jumlah;
-                    $dtInsT['namaJaminan'] .= str_replace("'","", $dataT->keterangan_barang.", ");
-                    $dtInsT['karat'] .= $dataT->karat.", ";
-                    $dtInsT['beratKotor'] .= $dataT->berat_kotor.", ";
-                    $dtInsT['beratBersih'] .= $dataT->berat_bersih.", ";
-                    $tempAvgKarat += $dataT->karat;
-                    $dtInsT['sumBeratKotor'] += $dataT->berat_kotor;
-                    $dtInsT['sumBeratBersih'] += $dataT->berat_bersih;
-                    $dtInsT['totalTaksiran'] += $dataT->nilai_taksir;
+                if(count($dataTaksir))
+                {
+                    foreach ($dataTaksir as $indexTaksir => $dataT) {
+                        $dtInsT['jumlahBarang'] += $dataT->jumlah;
+                        $dtInsT['namaJaminan'] .= str_replace("'","", $dataT->keterangan_barang.", ");
+                        $dtInsT['karat'] .= $dataT->karat.", ";
+                        $dtInsT['beratKotor'] .= $dataT->berat_kotor.", ";
+                        $dtInsT['beratBersih'] .= $dataT->berat_bersih.", ";
+                        $tempAvgKarat += $dataT->karat;
+                        $dtInsT['sumBeratKotor'] += $dataT->berat_kotor;
+                        $dtInsT['sumBeratBersih'] += $dataT->berat_bersih;
+                        $dtInsT['totalTaksiran'] += $dataT->nilai_taksir;
+                    }
+
+                    $dtInsT['namaJaminan'] = substr($dtInsT['namaJaminan'], 0, -2);
+                    $dtInsT['karat'] = substr($dtInsT['karat'], 0, -2);
+                    $dtInsT['beratKotor'] = substr($dtInsT['beratKotor'], 0, -2);
+                    $dtInsT['beratBersih'] = substr($dtInsT['beratBersih'], 0, -2);
+                    $dtInsT['avgKarat'] = $tempAvgKarat / count($dataTaksir);
+
+                    $dtInsTApprove = $dtInsT;
+                    $dtInsTApprove['levelPenaksir'] = 1;
+                    $dtInsTApprove['isFinal'] = 1;
+
+                    // array_push($tempData, $dtInsT);
+                    // array_push($tempData, $dtInsTApprove);
+
+                    $dtInsT = (object) $dtInsT;
+                    $dtInsTApprove = (object) $dtInsTApprove;
+
+                    $sqlInsertStatement .= "(
+                        $dtInsT->idFAPG,
+                        $dtInsT->jumlahBarang,
+                        '$dtInsT->namaJaminan',
+                        '$dtInsT->karat',
+                        '$dtInsT->beratKotor',
+                        '$dtInsT->beratBersih',
+                        $dtInsT->avgKarat,
+                        $dtInsT->sumBeratKotor,
+                        $dtInsT->sumBeratBersih,
+                        $dtInsT->totalTaksiran,
+                        '$dtInsT->keterangan',
+                        $dtInsT->levelPenaksir,
+                        $dtInsT->isFinal
+                    ), (
+                        $dtInsTApprove->idFAPG,
+                        $dtInsTApprove->jumlahBarang,
+                        '$dtInsTApprove->namaJaminan',
+                        '$dtInsTApprove->karat',
+                        '$dtInsTApprove->beratKotor',
+                        '$dtInsTApprove->beratBersih',
+                        $dtInsTApprove->avgKarat,
+                        $dtInsTApprove->sumBeratKotor,
+                        $dtInsTApprove->sumBeratBersih,
+                        $dtInsTApprove->totalTaksiran,
+                        '$dtInsTApprove->keterangan',
+                        $dtInsTApprove->levelPenaksir,
+                        $dtInsTApprove->isFinal
+                    ),";
+
+                    // dd($sqlInsertStatement);
+
                 }
 
-                $dtInsT['namaJaminan'] = substr($dtInsT['namaJaminan'], 0, -2);
-                $dtInsT['karat'] = substr($dtInsT['karat'], 0, -2);
-                $dtInsT['beratKotor'] = substr($dtInsT['beratKotor'], 0, -2);
-                $dtInsT['beratBersih'] = substr($dtInsT['beratBersih'], 0, -2);
-                $dtInsT['avgKarat'] = $tempAvgKarat / count($dataTaksir);
-
-                $dtInsTApprove = $dtInsT;
-                $dtInsTApprove['levelPenaksir'] = 1;
-                $dtInsTApprove['isFinal'] = 1;
-
-                // array_push($tempData, $dtInsT);
-                // array_push($tempData, $dtInsTApprove);
-
-                $dtInsT = (object) $dtInsT;
-                $dtInsTApprove = (object) $dtInsTApprove;
-
-                $sqlInsertStatement = "INSERT INTO tran_taksiran (
-                    idFAPG,
-                    jumlahBarang,
-                    namaJaminan,
-                    karat,
-                    beratKotor,
-                    beratBersih,
-                    avgKarat,
-                    sumBeratKotor,
-                    sumBeratBersih,
-                    totalTaksiran,
-                    keterangan,
-                    levelPenaksir,
-                    isFinal
-                ) VALUES(
-                    $dtInsT->idFAPG,
-                    $dtInsT->jumlahBarang,
-                    '$dtInsT->namaJaminan',
-                    '$dtInsT->karat',
-                    '$dtInsT->beratKotor',
-                    '$dtInsT->beratBersih',
-                    $dtInsT->avgKarat,
-                    $dtInsT->sumBeratKotor,
-                    $dtInsT->sumBeratBersih,
-                    $dtInsT->totalTaksiran,
-                    '$dtInsT->keterangan',
-                    $dtInsT->levelPenaksir,
-                    $dtInsT->isFinal
-                ), (
-                    $dtInsTApprove->idFAPG,
-                    $dtInsTApprove->jumlahBarang,
-                    '$dtInsTApprove->namaJaminan',
-                    '$dtInsTApprove->karat',
-                    '$dtInsTApprove->beratKotor',
-                    '$dtInsTApprove->beratBersih',
-                    $dtInsTApprove->avgKarat,
-                    $dtInsTApprove->sumBeratKotor,
-                    $dtInsTApprove->sumBeratBersih,
-                    $dtInsTApprove->totalTaksiran,
-                    '$dtInsTApprove->keterangan',
-                    $dtInsTApprove->levelPenaksir,
-                    $dtInsTApprove->isFinal
-                )";
-
-                // dd($sqlInsertStatement);
-
-                DB::connection('mysql')->statement($sqlInsertStatement);
+                echo "$index $dataF->idFAPG \n";
             }
-
-            echo "$index $dataF->idFAPG \n";
+            $sqlInsertStatement = substr($sqlInsertStatement, 0, -1);
+            DB::connection('mysql')->statement($sqlInsertStatement);
+            $sqlInsertStatement = "INSERT INTO tran_taksiran (
+                idFAPG,
+                jumlahBarang,
+                namaJaminan,
+                karat,
+                beratKotor,
+                beratBersih,
+                avgKarat,
+                sumBeratKotor,
+                sumBeratBersih,
+                totalTaksiran,
+                keterangan,
+                levelPenaksir,
+                isFinal
+            ) VALUES";
             // dd($dataTaksir, $dtInsT, $dtInsTApprove);
         }
         return 0;

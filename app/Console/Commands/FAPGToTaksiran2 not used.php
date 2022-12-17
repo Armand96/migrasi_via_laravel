@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use PhpParser\Node\Stmt\Foreach_;
 
 class FAPGToTaksiran2 extends Command
 {
@@ -39,6 +40,7 @@ class FAPGToTaksiran2 extends Command
      */
     public function handle()
     {
+        ini_set('memory_limit', '-1');
         $sql = "SELECT
             idFAPG,
             no_fatg,
@@ -155,21 +157,24 @@ class FAPGToTaksiran2 extends Command
                         $dtInsTemp['totalTaksiran'] += $dataT->nilai_taksir;
 
                     }
-                    if(count($dataTaksir)-1 == $indexTaksir && $dataTaksir[$indexTaksir-1]->no_fatg == $dataT->no_fatg ) array_push($tempDataInsert, $dtInsTemp);
+                    if(count($dataTaksir)-1 == $indexTaksir || $dataTaksir[$indexTaksir-1]->no_fatg == $dataT->no_fatg ) array_push($tempDataInsert, $dtInsTemp);
                 }
 
 
             }
 
-            Storage::disk('public')->put('data.json', json_encode($tempDataInsert));
-
-            // $dtInsTApprove = $dtInsT;
-            // $dtInsTApprove['levelPenaksir'] = 1;
-            // $dtInsTApprove['isFinal'] = 1;
-
-            // $dtInsT = (object) $dtInsT;
-            // $dtInsTApprove = (object) $dtInsTApprove;
-
+            foreach ($tempDataInsert as $key => $value) {
+                $dtInsTApprove = $value;
+                $dtInsTApprove['levelPenaksir'] = 1;
+                $dtInsTApprove['isFinal'] = 1;
+                array_push($tempDataInsert, $dtInsTApprove);
+            }
+            // Storage::disk('public')->put('data.json', json_encode($tempDataInsert));
+            $dataChunk = array_chunk($tempDataInsert, 1000);
+            foreach ($dataChunk as $key => $value) {
+                echo "$key \n";
+                DB::connection('mysql')->table('tran_fapg')->insert($value);
+            }
             // DB::connection('mysql')->statement($sqlInsertStatement);
         }
         return 0;
