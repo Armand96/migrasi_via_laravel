@@ -56,77 +56,83 @@ class PostToOracle extends Command
             $stringDataBatch = substr($stringDataBatch, 0, -1);
 
             $sqlDetail = "SELECT
-                idDtTrans,
-                kodeTransaksi AS TrxNumber,
-                namaJenisJurnal AS TrxType,
-                DATE_FORMAT(dt.tanggal, '%d-%b-%y') AS TrxDate,
-                sm.batch,
+                *,
                 CASE
-                    WHEN LEFT(coaCabang, 1) = 1 THEN '999'
-                    WHEN LEFT(coaCabang, 1) = 2 THEN '002'
-                    WHEN LEFT(coaCabang, 1) = 3 THEN '003'
-                    WHEN LEFT(coaCabang, 1) = 4 THEN '004'
-                    WHEN LEFT(coaCabang, 1) = 5 THEN '005'
-                    WHEN LEFT(coaCabang, 1) = 6 THEN '006'
-                    WHEN LEFT(coaCabang, 1) = 7 THEN '007'
-                    WHEN LEFT(coaCabang, 1) = 8 THEN '008'
-                END AS Company,
-                CONCAT('0', LEFT(coaCabang, 3)) AS Outlet,
-                1 AS TipePembiayaan,
-                CASE
-                    WHEN SUBSTR(kodeTransaksi, 6, 3) = 'PTC' THEN rpc.kodeCostCenter
-                    WHEN SUBSTR(kodeTransaksi, 6, 3) = 'ADV' THEN adv.kodeCostCenter
-                    WHEN SUBSTR(kodeTransaksi, 6, 3) = 'RKN' THEN rb.kodeCostCenter
-                    ELSE '000'
-                END AS CostCenter,
-                ct.coaOracle AS NaturalAccount,
-                CASE WHEN tbp.productOracleValue IS NULL THEN '0000' ELSE productOracleValue END AS Product,
-                CASE
-                    WHEN idUsedfor != 0 THEN '0000'
+                    WHEN coaCabang = '1971000999' THEN CONCAT('0', COMPANY)
+                    WHEN coaCabang LIKE '1971000%' AND coaCabang <> '1971000999' THEN RIGHT(coaCabang, 4)
                     ELSE '0000'
-                END AS Intercompany,
-                '000' AS Future1,
-                '000' AS Future2,
-                CASE
-                    WHEN dk = 'D' THEN dt.amount ELSE 0
-                END AS Debit,
-                CASE
-                    WHEN dk = 'K' THEN dt.amount ELSE 0
-                END AS Credit,
-                dt.keterangan AS Reference,
-                'IDR' AS CurrencyCode,
-                ct.accountType AS AccountType,
-                1 AS ExchangeRate,
-                dt.keterangan AS BankReference
-            FROM `acc_dt_trans` dt
-            LEFT JOIN acc_sm_trans sm ON sm.batch = dt.batch
-            LEFT JOIN tblproduk tbp ON tbp.idProduk = sm.idProduk
-            LEFT JOIN acc_jenisjurnal jj ON jj.idJenisJurnal = sm.idJenisJurnal
-            LEFT JOIN tblcoatemplate ct ON ct.idCoa = dt.idCoa
-            LEFT JOIN (
-                SELECT kodeVoucher, CASE WHEN kodeCostCenter IS NULL THEN '000' ELSE kodeCostCenter END AS kodeCostCenter
-                FROM advance adv
-                LEFT JOIN advance_realisasi_detail adt ON adt.idAdvance = adv.idAdvance
-                LEFT JOIN tblcostcenter tcc ON tcc.idCostCenter = adt.idCostCenter
-            ) AS adv ON adv.kodeVoucher = kodeTransaksi
-            LEFT JOIN (
-                SELECT noVoucher, CASE WHEN kodeCostCenter IS NULL THEN '000' ELSE kodeCostCenter END AS kodeCostCenter
-                FROM fa_rekonbank rb
-                LEFT JOIN fa_rekonbank_detail rbd ON rb.idRekonBank = rbd.idRekonBank
-                LEFT JOIN tblcostcenter tcc ON tcc.idCostCenter = rbd.idCostCenter
-            ) AS rb ON rb.noVoucher = kodeTransaksi
-            LEFT JOIN (
-                SELECT kodeVoucher, CASE WHEN kodeCostCenter IS NULL THEN '000' ELSE kodeCostCenter END AS kodeCostCenter
-                FROM realisasi_pettycash rpc
-                LEFT JOIN realisasi_pettycash_detail rpd ON rpc.idRealisasiPettyCash = rpd.idRealisasiPettyCash
-                LEFT JOIN tblcostcenter tcc ON tcc.idCostCenter = rpd.idCostCenter
-            ) AS rpc ON rpc.kodeVoucher = kodeTransaksi
-            -- LEFT JOIN tblcoausedfor cuf ON cuf.idUsedfor = ct.idUsedfor
-            WHERE dt.batch IN ($stringDataBatch);
-            -- WHERE kodeTransaksi = '2212.MB.000150';
-            ";
+                END AS Intercompany
+                FROM
+                (
+                    SELECT
+                        idDtTrans,
+                        kodeTransaksi AS TrxNumber,
+                        namaJenisJurnal AS TrxType,
+                        DATE_FORMAT(dt.tanggal, '%d-%b-%y') AS TrxDate,
+                        sm.batch,
+                        CASE
+                            WHEN LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 1 THEN '999'
+                            WHEN LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 2 THEN '002'
+                            WHEN LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 3 THEN '003'
+                            WHEN LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 4 THEN '004'
+                            WHEN LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 5 THEN '005'
+                            WHEN LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 6 THEN '006'
+                            WHEN LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 7 THEN '007'
+                            WHEN LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 8 THEN '008'
+                        END AS Company,
+                        CONCAT('0', LEFT(coaCabang, 3)) AS Outlet,
+                        1 AS TipePembiayaan,
+                        CASE
+                            WHEN SUBSTR(kodeTransaksi, 6, 3) = 'PTC' THEN rpc.kodeCostCenter
+                            WHEN SUBSTR(kodeTransaksi, 6, 3) = 'ADV' THEN adv.kodeCostCenter
+                            WHEN SUBSTR(kodeTransaksi, 6, 3) = 'RKN' THEN rb.kodeCostCenter
+                            ELSE '000'
+                        END AS CostCenter,
+                        ct.coaOracle AS NaturalAccount,
+                        CASE WHEN tbp.productOracleValue IS NULL THEN '0000' ELSE productOracleValue END AS Product,
+                        RIGHT(coaCabang, 10) AS coaCabang,
+                        '000' AS Future1,
+                        '000' AS Future2,
+                        CASE
+                            WHEN dk = 'D' THEN dt.amount ELSE 0
+                        END AS Debit,
+                        CASE
+                            WHEN dk = 'K' THEN dt.amount ELSE 0
+                        END AS Credit,
+                        dt.keterangan AS Reference,
+                        'IDR' AS CurrencyCode,
+                        ct.accountType AS AccountType,
+                        1 AS ExchangeRate,
+                        dt.keterangan AS BankReference
+                    FROM `acc_dt_trans` dt
+                    LEFT JOIN acc_sm_trans sm ON sm.batch = dt.batch
+                    LEFT JOIN tblproduk tbp ON tbp.idProduk = sm.idProduk
+                    LEFT JOIN acc_jenisjurnal jj ON jj.idJenisJurnal = sm.idJenisJurnal
+                    LEFT JOIN tblcoatemplate ct ON ct.idCoa = dt.idCoa
+                    LEFT JOIN (
+                        SELECT kodeVoucher, CASE WHEN kodeCostCenter IS NULL THEN '000' ELSE kodeCostCenter END AS kodeCostCenter
+                        FROM advance adv
+                        LEFT JOIN advance_realisasi_detail adt ON adt.idAdvance = adv.idAdvance
+                        LEFT JOIN tblcostcenter tcc ON tcc.idCostCenter = adt.idCostCenter
+                    ) AS adv ON adv.kodeVoucher = kodeTransaksi
+                    LEFT JOIN (
+                        SELECT noVoucher, CASE WHEN kodeCostCenter IS NULL THEN '000' ELSE kodeCostCenter END AS kodeCostCenter
+                        FROM fa_rekonbank rb
+                        LEFT JOIN fa_rekonbank_detail rbd ON rb.idRekonBank = rbd.idRekonBank
+                        LEFT JOIN tblcostcenter tcc ON tcc.idCostCenter = rbd.idCostCenter
+                    ) AS rb ON rb.noVoucher = kodeTransaksi
+                    LEFT JOIN (
+                        SELECT kodeVoucher, CASE WHEN kodeCostCenter IS NULL THEN '000' ELSE kodeCostCenter END AS kodeCostCenter
+                        FROM realisasi_pettycash rpc
+                        LEFT JOIN realisasi_pettycash_detail rpd ON rpc.idRealisasiPettyCash = rpd.idRealisasiPettyCash
+                        LEFT JOIN tblcostcenter tcc ON tcc.idCostCenter = rpd.idCostCenter
+                    ) AS rpc ON rpc.kodeVoucher = kodeTransaksi
+                    WHERE dt.batch IN ($stringDataBatch)
+                ) AS tblall";
 
             $dataBatchDetail = DB::connection('mysql')->select(DB::raw($sqlDetail));
+            // Storage::disk('public')->put('batchdata.json', json_encode($dataBatchDetail));
+            // dd($dataBatchDetail);
 
             DB::beginTransaction();
 
@@ -141,11 +147,9 @@ class PostToOracle extends Command
                         $dataBatchDetail[$key]->LineID = intval($value->batch . $rowIndex);
                         $rowIndex++;
                     }
+                    if($bIndex == 0) unset($dataBatchDetail[$key]->coaCabang);
                 }
             }
-
-            // Storage::disk('public')->put('batch.json', json_encode($dataBatchDetail));
-            // dd($dataBatchDetail);
 
             $headers = array(
                 'Authorization' => env('AUTH_KEY_ORACLE'),
@@ -159,8 +163,6 @@ class PostToOracle extends Command
             );
 
             Storage::put('public/sentdata.json', json_encode($dataPost));
-
-            // dd($dataPost);
 
             $response = Http::withHeaders($headers)->post(env('URL_ORACLE'), $dataPost);
             $bodyResponse = json_decode($response->body());
