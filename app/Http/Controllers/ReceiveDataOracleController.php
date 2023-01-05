@@ -32,6 +32,33 @@ class ReceiveDataOracleController extends Controller
                     if($dataReq['Source'] == "BAT")
                     {
 
+                        /* CHECK JIKA TRX SUDAH ADA */
+                        $isExist = DB::connection('mysql')->table('acc_in_oracle')
+                                    ->where('TrxNumber', $dataReq['TrxNumber'])
+                                    ->where('TrxStatus', $dataReq['TrxStatus'])
+                                    ->where('LineID', $dataReq['LineID'])->first();
+
+                        if($isExist != null)
+                        {
+                            $responseMessage['Message'] = "Nomor Transaksi ".$dataReq['TrxNumber']." dan status ".$dataReq["TrxStatus"]." sudah ada";
+                            return response()->json($responseMessage);
+                        }
+
+                        /* CHECK STATUS CREATED SUDAH ADA ATAU BELUM JIKA TRX STATUS CANCEL*/
+                        if($dataReq['TrxStatus'] == "CANCELED")
+                        {
+                            $isExist = DB::connection('mysql')->table('acc_in_oracle')
+                            ->where('TrxNumber', $dataReq['TrxNumber'])
+                            ->where('LineID', $dataReq['LineID'])
+                            ->where('TrxStatus', 'CREATED')->first();
+
+                            if($isExist == null)
+                            {
+                                $responseMessage['Message'] = "Nomor Transaksi ".$dataReq['TrxNumber']." tidak bisa CANCELED, status CREATED belum ada, ";
+                                return response()->json($responseMessage);
+                            }
+                        }
+
                         $dataVoucher = DB::connection('mysql')->select(DB::raw("CALL oracle_transaksi_internal('".$dataReq['Outlet']."', '".$dataReq['BankIn']."', '".$dataReq['BankOut']."')"));
                         if(count($dataVoucher) == 0)
                         {
@@ -47,7 +74,7 @@ class ReceiveDataOracleController extends Controller
                                 'tahun' => date('Y'),
                                 'kodeTrans' => 'MB',
                                 'urutVoucher' => 1,
-                                'noVoucher' => date('y').date('m').'MB'.'000001',
+                                'noVoucher' => date('y').date('m').'.MB.'.'000001',
                             );
 
                             $dtArray = (object) $dtArray;
@@ -159,6 +186,31 @@ class ReceiveDataOracleController extends Controller
                     }
                     elseif($dataReq['Source'] == "AR_RECEIPT" || $dataReq['Source'] == "AP_PAYMENT")
                     {
+                        /* CHECK JIKA TRX SUDAH ADA */
+                        $isExist = DB::connection('mysql')->table('acc_in_oracle')
+                                    ->where('TrxNumber', $dataReq['TrxNumber'])
+                                    ->where('TrxStatus', $dataReq['TrxStatus'])->first();
+
+                        if($isExist != null)
+                        {
+                            $responseMessage['Message'] = "Nomor Transaksi ".$dataReq['TrxNumber']." dan status ".$dataReq["TrxStatus"]." sudah ada";
+                            return response()->json($responseMessage);
+                        }
+
+                        /* CHECK STATUS CREATED SUDAH ADA ATAU BELUM JIKA TRX STATUS CANCEL*/
+                        if($dataReq['TrxStatus'] == "CANCELED")
+                        {
+                            $isExist = DB::connection('mysql')->table('acc_in_oracle')
+                            ->where('TrxNumber', $dataReq['TrxNumber'])
+                            ->where('TrxStatus', 'CREATED')->first();
+
+                            if($isExist == null)
+                            {
+                                $responseMessage['Message'] = "Nomor Transaksi ".$dataReq['TrxNumber']." tidak bisa CANCELED, status CREATED belum ada, ";
+                                return response()->json($responseMessage);
+                            }
+                        }
+
                         $dataVoucher = DB::connection('mysql')->select(DB::raw("CALL oracle_rekonbank('".$dataReq['Outlet']."', '".$dataReq['BankID']."')"));
                         if(count($dataVoucher) == 0)
                         {
@@ -172,7 +224,7 @@ class ReceiveDataOracleController extends Controller
                                 'tahun' => date('Y'),
                                 'kodeTrans' => 'RKN',
                                 'urutVoucher' => 1,
-                                'noVoucher' => date('y').date('m').'RKN'.'000001',
+                                'noVoucher' => date('y').date('m').'.RKN.'.'000001',
                             );
 
                             $dtArray = (object) $dtArray;
@@ -272,9 +324,9 @@ class ReceiveDataOracleController extends Controller
             } catch (\Throwable $th) {
 
                 DB::rollBack();
-                // $responseMessage['Message'] = $th->getMessage();
-                // Log::error($th->getMessage());
-                throw $th;
+                $responseMessage['Message'] = $th->getMessage();
+                Log::error($th->getMessage());
+                // throw $th;
             }
         }
         else
