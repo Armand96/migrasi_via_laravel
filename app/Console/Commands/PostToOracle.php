@@ -43,7 +43,7 @@ class PostToOracle extends Command
         // dd(date('m/d/Y-H:i:s'));
 
         /* AMBIL DATA DARI TRANSAKSI SUMMARY */
-        $sqlBatch = "SELECT batch, idSmTrans FROM acc_sm_trans WHERE isPost = 0 LIMIT 10";
+        $sqlBatch = "SELECT batch, idSmTrans FROM acc_sm_trans WHERE isPost = 0 LIMIT 1";
         $dataBatch = DB::connection('mysql')->select(DB::raw($sqlBatch));
         $stringDataBatch = "";
 
@@ -71,8 +71,8 @@ class PostToOracle extends Command
                     WHEN LEFT(coaCabang, 1) = 7 THEN '007'
                     WHEN LEFT(coaCabang, 1) = 8 THEN '008'
                 END AS Company,
-                LEFT(coaCabang, 3) AS Outlet,
-                1 AS TipePembayaran,
+                CONCAT('0', LEFT(coaCabang, 3)) AS Outlet,
+                1 AS TipePembiayaan,
                 CASE
                     WHEN SUBSTR(kodeTransaksi, 6, 3) = 'PTC' THEN rpc.kodeCostCenter
                     WHEN SUBSTR(kodeTransaksi, 6, 3) = 'ADV' THEN adv.kodeCostCenter
@@ -80,7 +80,7 @@ class PostToOracle extends Command
                     ELSE '000'
                 END AS CostCenter,
                 ct.coaOracle AS NaturalAccount,
-                CASE WHEN tbp.productOracleValue IS NULL THEN '' ELSE productOracleValue END AS Product,
+                CASE WHEN tbp.productOracleValue IS NULL THEN '0000' ELSE productOracleValue END AS Product,
                 CASE
                     WHEN idUsedfor != 0 THEN '0000'
                     ELSE '0000'
@@ -97,7 +97,7 @@ class PostToOracle extends Command
                 'IDR' AS CurrencyCode,
                 ct.accountType AS AccountType,
                 1 AS ExchangeRate,
-                '' AS BankReference
+                dt.keterangan AS BankReference
             FROM `acc_dt_trans` dt
             LEFT JOIN acc_sm_trans sm ON sm.batch = dt.batch
             LEFT JOIN tblproduk tbp ON tbp.idProduk = sm.idProduk
@@ -122,7 +122,9 @@ class PostToOracle extends Command
                 LEFT JOIN tblcostcenter tcc ON tcc.idCostCenter = rpd.idCostCenter
             ) AS rpc ON rpc.kodeVoucher = kodeTransaksi
             -- LEFT JOIN tblcoausedfor cuf ON cuf.idUsedfor = ct.idUsedfor
-            WHERE dt.batch IN ($stringDataBatch);";
+            WHERE dt.batch IN ($stringDataBatch);
+            -- WHERE kodeTransaksi = '2212.MB.000150';
+            ";
 
             $dataBatchDetail = DB::connection('mysql')->select(DB::raw($sqlDetail));
 
@@ -146,7 +148,7 @@ class PostToOracle extends Command
             // dd($dataBatchDetail);
 
             $headers = array(
-                'Authorization' => 'Basic RUJTQ01BU0RFVjpDMzUzRDg1MDQwNzA5NDJENjNBRUJCOUFFRkM4QUVFNQ==',
+                'Authorization' => env('AUTH_KEY_ORACLE'),
                 'Content-Type' => 'text/plain'
             );
 
@@ -156,7 +158,11 @@ class PostToOracle extends Command
                 'Journal' => $dataBatchDetail
             );
 
-            $response = Http::withHeaders($headers)->post('https://api.serbamuliagroup.co.id/ebs/dev/mas/core', $dataPost);
+            Storage::put('public/sentdata.json', json_encode($dataPost));
+
+            // dd($dataPost);
+
+            $response = Http::withHeaders($headers)->post(env('URL_ORACLE'), $dataPost);
             $bodyResponse = json_decode($response->body());
 
             $batchOracleInsert = array(
