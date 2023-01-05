@@ -14,7 +14,7 @@ class PostToOracle extends Command
      *
      * @var string
      */
-    protected $signature = 'post:oracle';
+    protected $signature = 'post:oracle {--limit=10}';
 
     /**
      * The console command description.
@@ -41,9 +41,11 @@ class PostToOracle extends Command
     public function handle()
     {
         // dd(date('m/d/Y-H:i:s'));
+        $limit = $this->option('limit');
+        // dd($limit);
 
         /* AMBIL DATA DARI TRANSAKSI SUMMARY */
-        $sqlBatch = "SELECT batch, idSmTrans FROM acc_sm_trans WHERE isPost = 0 LIMIT 1";
+        $sqlBatch = "SELECT batch, idSmTrans FROM acc_sm_trans WHERE isPost = 0 LIMIT $limit";
         $dataBatch = DB::connection('mysql')->select(DB::raw($sqlBatch));
         $stringDataBatch = "";
 
