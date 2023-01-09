@@ -141,22 +141,6 @@ class ReceiveDataOracleController extends Controller
                         );
                         DB::connection('mysql')->table('fa_transaksiinternal')->insert($dtInsertInternal);
 
-                        /* UPDATE SALDO BANK MASUK*/
-                        $this->updateSaldoBank(
-                            $dtInsertInternal['idBankMasuk'],
-                            $dtInsertInternal['idCabang'],
-                            'Masuk',
-                            $dtInsertInternal['nominalTransaksi']
-                        );
-
-                        /* UPDATE SALDO BANK KELUAR*/
-                        $this->updateSaldoBank(
-                            $dtInsertInternal['idBankKeluar'],
-                            $dtInsertInternal['idCabang'],
-                            'Keluar',
-                            $dtInsertInternal['nominalTransaksi']
-                        );
-
                         /* INSERT KE REPORT_BANKTRANSAKSI */
                         // INSERT DEBET
                         $dtInsertRptBankTrxDebet = array(
@@ -170,13 +154,61 @@ class ReceiveDataOracleController extends Controller
                             'nominal' => $dtInsertInternal['nominalTransaksi'],
                             'tipeTrx' => 'Debet'
                         );
-                        $this->insertReportBankTrx($dtInsertRptBankTrxDebet);
+                        $message = $this->insertReportBankTrx($dtInsertRptBankTrxDebet);
+
+                        /* CHECK SALDO BANK IN*/
+                        if($message != null)
+                        {
+                            DB::rollBack();
+                            $responseMessage ['Message']= $message;
+                            return $responseMessage;
+                        }
 
                         // INSERT KREDIT
                         $dtInsertRptBankTrxKredit = $dtInsertRptBankTrxDebet;
                         $dtInsertRptBankTrxKredit['idBank'] = $dtInsertInternal['idBankKeluar'];
                         $dtInsertRptBankTrxKredit['tipeTrx'] = 'Kredit';
                         $this->insertReportBankTrx($dtInsertRptBankTrxKredit);
+
+                        /* CHECK SALDO BANK OUT*/
+                        if($message != null)
+                        {
+                            DB::rollBack();
+                            $responseMessage ['Message']= $message;
+                            return $responseMessage;
+                        }
+
+                        /* UPDATE SALDO BANK MASUK*/
+                        $message = $this->updateSaldoBank(
+                            $dtInsertInternal['idBankMasuk'],
+                            $dtInsertInternal['idCabang'],
+                            'Masuk',
+                            $dtInsertInternal['nominalTransaksi']
+                        );
+
+                        /* CHECK SALDO BANK */
+                        if($message != null)
+                        {
+                            DB::rollBack();
+                            $responseMessage ['Message']= $message;
+                            return $responseMessage;
+                        }
+
+                        /* UPDATE SALDO BANK KELUAR*/
+                        $message = $this->updateSaldoBank(
+                            $dtInsertInternal['idBankKeluar'],
+                            $dtInsertInternal['idCabang'],
+                            'Keluar',
+                            $dtInsertInternal['nominalTransaksi']
+                        );
+
+                        /* CHECK SALDO BANK */
+                        if($message != null)
+                        {
+                            DB::rollBack();
+                            $responseMessage ['Message']= $message;
+                            return $responseMessage;
+                        }
 
                         /* RETURN RESPONSE */
                         $responseMessage['Success'] = 1;
@@ -211,8 +243,8 @@ class ReceiveDataOracleController extends Controller
                             }
                         }
 
-                        $dataVoucher = DB::connection('mysql')->select(DB::raw("CALL oracle_rekonbank('".$dataReq['Outlet']."', '".$dataReq['BankID']."')"));
-                        if(count($dataVoucher) == 0)
+                        /* AMBIL DATA VOUCHER */
+                        $dataVoucher = DB::connection('mysql')->select(DB::raw("CALL oracle_rekonbank('".$dataReq['Outlet']."', '".$dataReq['BankID']."')"));                        if(count($dataVoucher) == 0)
                         {
                             $dataBankIn = DB::connection('mysql')->table('tblbank')->where('kd_bank', $dataReq['BankID'])->select('idBank')->first();
                             $dataCabang = DB::connection('mysql')->table('tblcabang')->where('kodeCabang', $dataReq['Outlet'])->select('idCabang')->first();
@@ -268,47 +300,87 @@ class ReceiveDataOracleController extends Controller
                         unset($dataInsertToProMas['Detail']);
 
                         DB::connection('mysql')->table('acc_in_oracle')->insert($dataInsertToProMas);
-
                         $lastIdTransaksi = DB::connection('mysql')->table('acc_in_oracle')->select('idTransaksi', 'TrxNumber')->orderBy('idTransaksi', 'desc')->first();
-                        // dd($lastIdTransaksi);
+
+                        /* INSERT TO REKON BANK */
+                        $dataRekonBank = array(
+                            'idCabang'=>$dataVoucher[0]->idCabang,
+                            'idBank'=>$dataVoucher[0]->idBank,
+                            'tanggal'=>$dataVoucher[0]->tanggal,
+                            'tahun'=>$dataVoucher[0]->tahun,
+                            'kodeTrans'=>$dataVoucher[0]->kodeTrans,
+                            'urutVoucher'=>$dataVoucher[0]->urutVoucher,
+                            'noVoucher'=>$dataVoucher[0]->noVoucher,
+                            'idCreated'=>0,
+                            'dateCreated'=>date('Y-m-d'),
+                            'total'=>$dataReq['TotalAmount'],
+                            'idApproval'=>0,
+                            'isActive'=>1,
+                            'statusApproval'=>0,
+                            'fromOracle'=>1,
+                            'coaOracle'=>$dataReq['NaturalAccount']
+                        );
+                        DB::connection('mysql')->table('fa_rekonbank')->insert($dataRekonBank);
+                        $resultRekonBank = DB::connection('mysql')->table('fa_rekonbank')->select('idRekonBank')->orderBy('idRekonBank')->first();
 
                         foreach ($dataInsertProMasDetail as $index => $data) {
+                            /* CHECK TIPE UANG */
+                            // dd($data);
+                            $tipeUangTrx = "";
+                            if($data['TipeUang'] == 'Keluar') $tipeUangTrx = "Kredit";
+                            else if($data['TipeUang'] == 'Masuk') $tipeUangTrx = "Debet";
+                            else {
+                                DB::rollBack();
+                                $responseMessage['Message'] = "TipeUang Tidak Ada";
+                                return response()->json($responseMessage);
+                            }
+
                             $dataInsertProMasDetail[$index]['idTransaksi'] = $lastIdTransaksi->idTransaksi;
                             $dataInsertProMasDetail[$index]['TrxNumber'] = $lastIdTransaksi->TrxNumber;
 
-                            $dataRekonBank = array(
-                                'idCabang'=>$dataVoucher[0]->idBank,
-                                'idBank'=>$dataVoucher[0]->idCabang,
-                                'tanggal'=>$dataVoucher[0]->tanggal,
-                                'tahun'=>$dataVoucher[0]->tahun,
-                                'kodeTrans'=>$dataVoucher[0]->kodeTrans,
-                                'urutVoucher'=>$dataVoucher[0]->urutVoucher,
-                                'noVoucher'=>$dataVoucher[0]->noVoucher,
-                                'idCreated'=>0,
-                                'dateCreated'=>date('Y-m-d'),
-                                'total'=>$data['Amount'],
-                                'idApproval'=>0,
-                                'isActive'=>1,
-                                'statusApproval'=>0,
-                                'fromOracle'=>1,
-                                'tipeUangOracle'=>$data['TipeUang']
-                            );
-
-                            DB::connection('mysql')->table('fa_rekonbank')->insert($dataRekonBank);
-                            $resultRekonBank = DB::connection('mysql')->table('fa_rekonbank')->select('idRekonBank')->orderBy('idRekonBank')->first();
-
+                            /* INSERT TO REKON BANK DETAIL */
                             $dataRekonBankDetail = array(
                                 'idRekonBank'=>$resultRekonBank->idRekonBank,
                                 'idCoa'=>0,
-                                'nominal'=>$dataRekonBank['total'],
+                                'nominal'=>$data['Amount'],
                                 'catatan'=>$data['LineDescription'],
                                 'typeTransaksi'=>$data['TipeUang'] == "Keluar" ? "K" : "D",
                                 'idCashflow'=>0,
                                 'idCostCenter'=>0,
                                 'bankReference'=>'',
-                                'coaOracle'=>$dataInsertToProMas['NaturalAccount']
+                                'coaOracle'=>$data['NaturalAccount'],
+                                'tipeUangOracle'=>$data['TipeUang'],
                             );
                             DB::connection('mysql')->table('fa_rekonbank_detail')->insert($dataRekonBankDetail);
+
+                            /* INSERT TO REPORT TRANSAKSI BANK */
+                            $dtInsertRptBankTrx = array(
+                                'idBank' => $dataRekonBank['idBank'],
+                                'idCabang' => $dataRekonBank['idCabang'],
+                                'idJenisTransaksi' => $dataReq['Source'] == 'AR_RECEIPT' ? 33 : 32, // idJenisTransaksi
+                                'tanggalSistem' => date('Y-m-d'),
+                                'tanggalProses' => date('Y-m-d H:i:s'),
+                                'kodeTrans' => $dataVoucher[0]->noVoucher,
+                                'keterangan' => $dataReq['Description'],
+                                'nominal' => $data['Amount'],
+                                'tipeTrx' => $tipeUangTrx
+                            );
+                            $message = $this->insertReportBankTrx($dtInsertRptBankTrx);
+                            /* VALIDASI SALDO BANK */
+                            if($message != null)
+                            {
+                                DB::rollBack();
+                                $responseMessage ['Message']= $message;
+                                return $responseMessage;
+                            }
+
+                            /* UPDATE SALDO BANK */
+                            $message = $this->updateSaldoBank(
+                                $dataRekonBank['idBank'],
+                                $dataRekonBank['idCabang'],
+                                $data['TipeUang'],
+                                $data['Amount']
+                            );
                         }
 
                         DB::connection('mysql')->table('acc_in_oracle_detail')->insert($dataInsertProMasDetail);
@@ -324,8 +396,8 @@ class ReceiveDataOracleController extends Controller
             } catch (\Throwable $th) {
 
                 DB::rollBack();
-                $responseMessage['Message'] = $th->getMessage();
-                Log::error($th->getMessage());
+                $responseMessage['Message'] = $th->getMessage(). " in line ". $th->getLine();
+                Log::error($th->getMessage(). " in line ". $th->getLine());
                 // throw $th;
             }
         }
@@ -333,8 +405,6 @@ class ReceiveDataOracleController extends Controller
         {
             $responseMessage['Message'] = "Invalid Auth Key";
         }
-
-
 
         return response()->json($responseMessage);
     }
@@ -345,6 +415,15 @@ class ReceiveDataOracleController extends Controller
     {
         $dataSaldoBank = DB::connection('mysql')->table('fa_saldobank')
                         ->where('idBank', $idBank)->where('idCabang', $idCabang)->first();
+
+        if($dataSaldoBank == null)
+        {
+            $dataBank = DB::connection('mysql')->table('tblbank')->where('idBank', $idBank)->first();
+            $dataCabang = DB::connection('mysql')->table('tblcabang')->where('idCabang', $idCabang)->first();
+            // dd($dataBank, $dataCabang);
+            $message = "Kode bank $dataBank->kd_bank belum terpasang di cabang $dataCabang->kodeCabang";
+            return $message;
+        }
 
         if($tipeUang == 'Keluar')
         {
@@ -371,6 +450,15 @@ class ReceiveDataOracleController extends Controller
                             ->where('idBank', $data['idBank'])
                             ->where('idCabang', $data['idCabang'])->first();
         // dd($dataSaldo, $data);
+
+        if($dataSaldo == null)
+        {
+            $dataBank = DB::connection('mysql')->table('tblbank')->where('idBank', $data['idBank'])->first();
+            $dataCabang = DB::connection('mysql')->table('tblcabang')->where('idCabang', $data['idCabang'])->first();
+            // dd($dataBank, $dataCabang);
+            $message = "Kode bank $dataBank->kd_bank belum terpasang di cabang $dataCabang->kodeCabang";
+            return $message;
+        }
 
         if($dataSaldo == null) $data['saldoAwal'] = 0;
         else $data['saldoAwal'] = $dataSaldo->saldoAkhir;
