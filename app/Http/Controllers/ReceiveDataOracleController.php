@@ -435,7 +435,7 @@ class ReceiveDataOracleController extends Controller
         else
         {
             $dataUpdate = array(
-                'saldoMasuk' => $dataSaldoBank->saldoKeluar + $nominal,
+                'saldoMasuk' => $dataSaldoBank->saldoMasuk + $nominal,
                 'saldoAkhir' => $dataSaldoBank->saldoAkhir + $nominal
             );
         }
