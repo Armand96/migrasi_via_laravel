@@ -256,7 +256,7 @@ class ReceiveDataOracleController extends Controller
                                 'tahun' => date('Y'),
                                 'kodeTrans' => 'RKN',
                                 'urutVoucher' => 1,
-                                'noVoucher' => date('y').date('m').'.RKN.'.'000001',
+                                'noVoucher' => date('y').date('m').'.RKN.'.'0000001',
                             );
 
                             $dtArray = (object) $dtArray;
