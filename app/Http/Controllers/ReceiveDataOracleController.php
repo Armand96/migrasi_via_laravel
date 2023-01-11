@@ -14,7 +14,7 @@ class ReceiveDataOracleController extends Controller
         $dataReq = $request->all();
         $dataInsertToProMas = array();
         $responseMessage = array(
-            'Success' => 0,
+            'Status' => 0,
             'Message' => '',
             'NoVoucher' => ''
         );
@@ -29,6 +29,7 @@ class ReceiveDataOracleController extends Controller
 
                 if(isset($dataReq['Source']))
                 {
+                    /* ==================================================== BAT ==================================================== */
                     if($dataReq['Source'] == "BAT")
                     {
 
@@ -62,14 +63,34 @@ class ReceiveDataOracleController extends Controller
                         $dataVoucher = DB::connection('mysql')->select(DB::raw("CALL oracle_transaksi_internal('".$dataReq['Outlet']."', '".$dataReq['BankIn']."', '".$dataReq['BankOut']."')"));
                         if(count($dataVoucher) == 0)
                         {
-                            $dataBankIn = DB::connection('mysql')->table('tblbank')->where('kd_bank', $dataReq['BankIn'])->select('idBank')->first();
-                            $dataBankOut = DB::connection('mysql')->table('tblbank')->where('kd_bank', $dataReq['BankOut'])->select('idBank')->first();
-                            $dataCabang = DB::connection('mysql')->table('tblcabang')->where('kodeCabang', $dataReq['Outlet'])->select('idCabang')->first();
+                            /* TIDAK ADA KODE BANK MASUK X DI CABANG X */
+                            $dataBankDanCabangKeluar = DB::connection('mysql')->table('fa_saldobank')
+                                            ->leftJoin('tblbank', 'tblbank.idBank', '=', 'fa_saldobank.idBank')
+                                            ->leftJoin('tblcabang', 'tblcabang.idCabang', '=', 'fa_saldobank.idCabang')
+                                            ->where('kd_bank', $dataReq['BankOut'])->where('kodeCabang', $dataReq['Outlet'])
+                                            ->select('tblbank.idBank', 'tblcabang.idCabang')->first();
+                            if($dataBankDanCabangKeluar == null)
+                            {
+                                $responseMessage['Message'] = "Kode Bank Keluar ".$dataReq['BankOut']." di Cabang ".$dataReq['Outlet']." Tidak ada";
+                                return response()->json($responseMessage);
+                            }
+
+                            /* TIDAK ADA KODE BANK MASUK X DI CABANG X */
+                            $dataBankDanCabangMasuk = DB::connection('mysql')->table('fa_saldobank')
+                                            ->leftJoin('tblbank', 'tblbank.idBank', '=', 'fa_saldobank.idBank')
+                                            ->leftJoin('tblcabang', 'tblcabang.idCabang', '=', 'fa_saldobank.idCabang')
+                                            ->where('kd_bank', $dataReq['BankIn'])->where('kodeCabang', $dataReq['Outlet'])
+                                            ->select('tblbank.idBank', 'tblcabang.idCabang')->first();
+                            if($dataBankDanCabangMasuk == null)
+                            {
+                                $responseMessage['Message'] = "Kode Bank Masuk ".$dataReq['BankIn']." di Cabang ".$dataReq['Outlet']." Tidak ada";
+                                return response()->json($responseMessage);
+                            }
 
                             $dtArray = array(
-                                'idCabang' => $dataCabang->idCabang,
-                                'idBankIn' => $dataBankIn->idBank,
-                                'idBankOut' => $dataBankOut->idBank,
+                                'idCabang' => $dataBankDanCabangMasuk->idCabang,
+                                'idBankIn' => $dataBankDanCabangMasuk->idBank,
+                                'idBankOut' => $dataBankDanCabangKeluar->idBank,
                                 'tanggal' => date('Y-m-d'),
                                 'tahun' => date('Y'),
                                 'kodeTrans' => 'MB',
@@ -90,9 +111,9 @@ class ReceiveDataOracleController extends Controller
                         {
                             DB::rollBack();
                             $stringMessage = "";
-                            if($dataVoucher[0]->idBankIn == NULL || $dataVoucher[0]->idBankIn == 0) $stringMessage .= "Bank Masuk tidak terdaftar di promas ";
-                            if($dataVoucher[0]->idBankOut == NULL || $dataVoucher[0]->idBankOut == 0) $stringMessage .= "Bank Keluar tidak terdaftar di promas ";
-                            if($dataVoucher[0]->idCabang == NULL || $dataVoucher[0]->idCabang == 0) $stringMessage .= "Cabang atau Outlet tidak terdaftar di promas ";
+                            if($dataVoucher[0]->idBankIn == NULL || $dataVoucher[0]->idBankIn == 0) $stringMessage .= "Kode Bank Masuk ".$dataReq['BankIn']." di Cabang ".$dataReq['Outlet']." Tidak ada ";
+                            if($dataVoucher[0]->idBankOut == NULL || $dataVoucher[0]->idBankOut == 0) $stringMessage .= "Kode Bank Keluar ".$dataReq['BankOut']." di Cabang ".$dataReq['Outlet']." Tidak ada ";
+
                             $stringMessage = substr($stringMessage, 0, -1);
 
                             $responseMessage['Message'] = $stringMessage;
@@ -183,7 +204,9 @@ class ReceiveDataOracleController extends Controller
                             $dtInsertInternal['idBankMasuk'],
                             $dtInsertInternal['idCabang'],
                             'Masuk',
-                            $dtInsertInternal['nominalTransaksi']
+                            $dtInsertInternal['nominalTransaksi'],
+                            $dataReq['BankIn'],
+                            $dataReq['Outlet']
                         );
 
                         /* CHECK SALDO BANK */
@@ -199,7 +222,9 @@ class ReceiveDataOracleController extends Controller
                             $dtInsertInternal['idBankKeluar'],
                             $dtInsertInternal['idCabang'],
                             'Keluar',
-                            $dtInsertInternal['nominalTransaksi']
+                            $dtInsertInternal['nominalTransaksi'],
+                            $dataReq['BankOut'],
+                            $dataReq['Outlet']
                         );
 
                         /* CHECK SALDO BANK */
@@ -211,12 +236,13 @@ class ReceiveDataOracleController extends Controller
                         }
 
                         /* RETURN RESPONSE */
-                        $responseMessage['Success'] = 1;
+                        $responseMessage['Status'] = 1;
                         $responseMessage['Message'] = "Success";
                         $responseMessage['NoVoucher'] = $dataVoucher[0]->noVoucher;
 
                     }
                     elseif($dataReq['Source'] == "AR_RECEIPT" || $dataReq['Source'] == "AP_PAYMENT")
+                    /* ==================================================== AP_PAYMENT / AR_RECEIPT ==================================================== */
                     {
                         /* CHECK JIKA TRX SUDAH ADA */
                         $isExist = DB::connection('mysql')->table('acc_in_oracle')
@@ -244,14 +270,28 @@ class ReceiveDataOracleController extends Controller
                         }
 
                         /* AMBIL DATA VOUCHER */
-                        $dataVoucher = DB::connection('mysql')->select(DB::raw("CALL oracle_rekonbank('".$dataReq['Outlet']."', '".$dataReq['BankID']."')"));                        if(count($dataVoucher) == 0)
+                        $dataVoucher = DB::connection('mysql')->select(DB::raw("CALL oracle_rekonbank('".$dataReq['Outlet']."', '".$dataReq['BankID']."')"));
+                        if(count($dataVoucher) == 0)
                         {
-                            $dataBankIn = DB::connection('mysql')->table('tblbank')->where('kd_bank', $dataReq['BankID'])->select('idBank')->first();
-                            $dataCabang = DB::connection('mysql')->table('tblcabang')->where('kodeCabang', $dataReq['Outlet'])->select('idCabang')->first();
+                            // $dataBankIn = DB::connection('mysql')->table('tblbank')->where('kd_bank', $dataReq['BankID'])->select('idBank')->first();
+                            // $dataCabang = DB::connection('mysql')->table('tblcabang')->where('kodeCabang', $dataReq['Outlet'])->select('idCabang')->first();
+
+                            $dataBankDanCabang = DB::connection('mysql')->table('fa_saldobank')
+                                            ->leftJoin('tblbank', 'tblbank.idBank', '=', 'fa_saldobank.idBank')
+                                            ->leftJoin('tblcabang', 'tblcabang.idCabang', '=', 'fa_saldobank.idCabang')
+                                            ->where('kd_bank', $dataReq['BankID'])->where('kodeCabang', $dataReq['Outlet'])
+                                            ->select('tblbank.idBank', 'tblcabang.idCabang')->first();
+
+                            if($dataBankDanCabang == null)
+                            {
+                                DB::rollBack();
+                                $responseMessage['Message'] = "Bank ".$dataReq['BankID']." di Cabang ".$dataReq['Outlet']." Tidak ada";
+                                return response()->json($responseMessage);
+                            }
 
                             $dtArray = array(
-                                'idCabang' => $dataCabang->idCabang,
-                                'idBank' => $dataBankIn->idBank,
+                                'idCabang' => $dataBankDanCabang->idCabang,
+                                'idBank' => $dataBankDanCabang->idBank,
                                 'tanggal' => date('Y-m-d'),
                                 'tahun' => date('Y'),
                                 'kodeTrans' => 'RKN',
@@ -271,8 +311,8 @@ class ReceiveDataOracleController extends Controller
                         {
                             DB::rollBack();
                             $stringMessage = "";
-                            if($dataVoucher[0]->idBank == NULL || $dataVoucher[0]->idBank == 0) $stringMessage .= "Bank tidak terdaftar di promas ";
-                            if($dataVoucher[0]->idCabang == NULL || $dataVoucher[0]->idCabang == 0) $stringMessage .= "Cabang atau Outlet tidak terdaftar di promas ";
+                            if($dataVoucher[0]->idBank == NULL || $dataVoucher[0]->idBank == 0) $stringMessage .= "Bank ".$dataReq['BankID']." tidak terdaftar di promas ";
+                            if($dataVoucher[0]->idCabang == NULL || $dataVoucher[0]->idCabang == 0) $stringMessage .= "Cabang ".$dataReq['Outlet']." tidak terdaftar di promas ";
                             $stringMessage = substr($stringMessage, 0, -1);
 
                             $responseMessage['Message'] = $stringMessage;
@@ -379,13 +419,15 @@ class ReceiveDataOracleController extends Controller
                                 $dataRekonBank['idBank'],
                                 $dataRekonBank['idCabang'],
                                 $data['TipeUang'],
-                                $data['Amount']
+                                $data['Amount'],
+                                $dataReq['BankID'],
+                                $dataReq['Outlet']
                             );
                         }
 
                         DB::connection('mysql')->table('acc_in_oracle_detail')->insert($dataInsertProMasDetail);
 
-                        $responseMessage['Success'] = 1;
+                        $responseMessage['Status'] = 1;
                         $responseMessage['Message'] = "Success";
                         $responseMessage['NoVoucher'] = $dataVoucher[0]->noVoucher;
                     }
@@ -411,17 +453,14 @@ class ReceiveDataOracleController extends Controller
 
     /* ============================================================================ */
     /* UPDATE SALDO BANK */
-    public function updateSaldoBank($idBank, $idCabang, $tipeUang, $nominal)
+    public function updateSaldoBank($idBank, $idCabang, $tipeUang, $nominal, $kdBank, $kdCabang)
     {
         $dataSaldoBank = DB::connection('mysql')->table('fa_saldobank')
                         ->where('idBank', $idBank)->where('idCabang', $idCabang)->first();
 
         if($dataSaldoBank == null)
         {
-            $dataBank = DB::connection('mysql')->table('tblbank')->where('idBank', $idBank)->first();
-            $dataCabang = DB::connection('mysql')->table('tblcabang')->where('idCabang', $idCabang)->first();
-            // dd($dataBank, $dataCabang);
-            $message = "Kode bank $dataBank->kd_bank belum terpasang di cabang $dataCabang->kodeCabang";
+            $message = "Kode bank $kdBank belum terpasang di cabang $kdCabang";
             return $message;
         }
 
@@ -449,14 +488,12 @@ class ReceiveDataOracleController extends Controller
         $dataSaldo = DB::connection('mysql')->table('fa_saldobank')
                             ->where('idBank', $data['idBank'])
                             ->where('idCabang', $data['idCabang'])->first();
-        // dd($dataSaldo, $data);
 
         if($dataSaldo == null)
         {
-            $dataBank = DB::connection('mysql')->table('tblbank')->where('idBank', $data['idBank'])->first();
-            $dataCabang = DB::connection('mysql')->table('tblcabang')->where('idCabang', $data['idCabang'])->first();
-            // dd($dataBank, $dataCabang);
-            $message = "Kode bank $dataBank->kd_bank belum terpasang di cabang $dataCabang->kodeCabang";
+            $kdBank = $data['kdBank'];
+            $kdCabang = $data['kdCabang'];
+            $message = "Kode bank $kdBank belum terpasang di cabang $kdCabang";
             return $message;
         }
 
