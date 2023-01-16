@@ -168,7 +168,7 @@ class ReceiveDataOracleController extends Controller
                             'idBank' => $dtInsertInternal['idBankMasuk'],
                             'idCabang' => $dtInsertInternal['idCabang'],
                             'idJenisTransaksi' => $idBATOracle,
-                            'tanggalSistem' => date('Y-m-d', strtotime($dataReq['TrxDate'])),
+                            'tanggalSistem' => date('Y-m-d'),
                             'tanggalProses' => date('Y-m-d H:i:s'),
                             'kodeTrans' => $dataVoucher[0]->noVoucher,
                             'keterangan' => $dataReq['Description'],
@@ -398,7 +398,7 @@ class ReceiveDataOracleController extends Controller
                                 'idBank' => $dataRekonBank['idBank'],
                                 'idCabang' => $dataRekonBank['idCabang'],
                                 'idJenisTransaksi' => $dataReq['Source'] == 'AR_RECEIPT' ? 33 : 32, // idJenisTransaksi
-                                'tanggalSistem' => date('Y-m-d', strtotime($dataReq['TrxDate'])),
+                                'tanggalSistem' => date('Y-m-d'),
                                 'tanggalProses' => date('Y-m-d H:i:s'),
                                 'kodeTrans' => $dataVoucher[0]->noVoucher,
                                 'keterangan' => $dataReq['Description'],
