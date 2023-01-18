@@ -45,7 +45,7 @@ class PostToOracle extends Command
         // dd($limit);
 
         /* AMBIL DATA DARI TRANSAKSI SUMMARY */
-        $sqlBatch = "SELECT batch, idSmTrans FROM acc_sm_trans WHERE isPost = 0 LIMIT $limit";
+        $sqlBatch = "SELECT batch, idSummary FROM akunting_summary WHERE isPost = 0 LIMIT $limit";
         $dataBatch = DB::connection('mysql')->select(DB::raw($sqlBatch));
         $stringDataBatch = "";
 
@@ -67,9 +67,9 @@ class PostToOracle extends Command
                 FROM
                 (
                     SELECT
-                        idDtTrans,
+                        idDetail,
                         kodeTransaksi AS TrxNumber,
-                        namaJenisJurnal AS TrxType,
+                        namaJenisJurnalOracle AS TrxType,
                         DATE_FORMAT(dt.tanggal, '%d-%b-%y') AS TrxDate,
                         sm.batch,
                         CASE
@@ -106,8 +106,8 @@ class PostToOracle extends Command
                         ct.accountType AS AccountType,
                         1 AS ExchangeRate,
                         dt.keterangan AS BankReference
-                    FROM `acc_dt_trans` dt
-                    LEFT JOIN acc_sm_trans sm ON sm.batch = dt.batch
+                    FROM `akunting_detail` dt
+                    LEFT JOIN akunting_summary sm ON sm.batch = dt.batch
                     LEFT JOIN tblproduk tbp ON tbp.idProduk = sm.idProduk
                     LEFT JOIN acc_jenisjurnal jj ON jj.idJenisJurnal = sm.idJenisJurnal
                     LEFT JOIN tblcoatemplate ct ON ct.idCoa = dt.idCoa
@@ -142,7 +142,7 @@ class PostToOracle extends Command
                 $updateData = array(
                     'isPost' => 1
                 );
-                DB::connection('mysql')->table('acc_sm_trans')->where('idSmTrans', $bVal->idSmTrans)->update($updateData);
+                DB::connection('mysql')->table('akunting_summary')->where('idSummary', $bVal->idSummary)->update($updateData);
                 $rowIndex = 1;
                 foreach ($dataBatchDetail as $key => $value) {
                     if($value->batch == $bVal->batch) {
@@ -164,7 +164,9 @@ class PostToOracle extends Command
                 'Journal' => $dataBatchDetail
             );
 
-            Storage::put('public/sentdata.json', json_encode($dataPost));
+            // dd($dataPost);
+
+            // Storage::put('public/sentdata.json', json_encode($dataPost));
 
             $response = Http::withHeaders($headers)->post(env('URL_ORACLE'), $dataPost);
             $bodyResponse = json_decode($response->body());
@@ -186,14 +188,14 @@ class PostToOracle extends Command
 
             // dd($lastInsertBatchID);
 
-            /* UPDATE ACC_DT_TRANS */
+            /* UPDATE AKUNTING_DETAIL */
             foreach ($dataBatchDetail as $key => $value) {
                 $dataUpdate = array(
                     'lineId' => $value->LineID,
                     'statusOracle' => $batchOracleInsert['isStatus'],
                     'idBatch' => $lastInsertBatchID->idBatch
                 );
-                DB::connection('mysql')->table('acc_dt_trans')->where('idDtTrans', $value->idDtTrans)->update($dataUpdate);
+                DB::connection('mysql')->table('akunting_detail')->where('idDetail', $value->idDetail)->update($dataUpdate);
                 // unset($dataBatchDetail[$key]->batch);
             }
 
