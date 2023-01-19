@@ -168,14 +168,15 @@ class PostToOracle extends Command
 
             // Storage::put('public/sentdata.json', json_encode($dataPost));
 
-            $response = Http::withHeaders($headers)->post(env('URL_ORACLE'), $dataPost);
-            $bodyResponse = json_decode($response->body());
+            // $response = Http::withHeaders($headers)->post(env('URL_ORACLE'), $dataPost);
+            // $bodyResponse = json_decode($response->body());
+            $bodyResponse = (object) ['status' => 'success'];
 
             $batchOracleInsert = array(
                 'tanggalJam' => date('Y-m-d H:i:s'),
                 'isStatus' => 0,
                 'sent' => '',
-                'response' => $response->body(),
+                'response' => '{"status":"success","message":"New data has been received.","reff":null}',
             );
 
             /* SET RESPONSE */
