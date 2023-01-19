@@ -140,7 +140,8 @@ class PostToOracle extends Command
 
             foreach ($dataBatch as $bIndex => $bVal) {
                 $updateData = array(
-                    'isPost' => 1
+                    'isPost' => 1,
+                    'tanggalPost' => date('Y-m-d H:i:s')
                 );
                 DB::connection('mysql')->table('akunting_summary')->where('idSummary', $bVal->idSummary)->update($updateData);
                 $rowIndex = 1;
@@ -168,15 +169,14 @@ class PostToOracle extends Command
 
             // Storage::put('public/sentdata.json', json_encode($dataPost));
 
-            // $response = Http::withHeaders($headers)->post(env('URL_ORACLE'), $dataPost);
-            // $bodyResponse = json_decode($response->body());
-            $bodyResponse = (object) ['status' => 'success'];
+            $response = Http::withHeaders($headers)->post(env('URL_ORACLE'), $dataPost);
+            $bodyResponse = json_decode($response->body());
 
             $batchOracleInsert = array(
                 'tanggalJam' => date('Y-m-d H:i:s'),
                 'isStatus' => 0,
                 'sent' => '',
-                'response' => '{"status":"success","message":"New data has been received.","reff":null}',
+                'response' => $response->body(),
             );
 
             /* SET RESPONSE */
