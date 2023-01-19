@@ -174,7 +174,7 @@ class PostToOracle extends Command
             $batchOracleInsert = array(
                 'tanggalJam' => date('Y-m-d H:i:s'),
                 'isStatus' => 0,
-                'sent' => json_encode($dataPost),
+                'sent' => '',
                 'response' => $response->body(),
             );
 
