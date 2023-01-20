@@ -14,7 +14,7 @@ class PostToOracle extends Command
      *
      * @var string
      */
-    protected $signature = 'post:oracle {--limit=10}';
+    protected $signature = 'post:oracle {--limit=10} {--idSummary=0}';
 
     /**
      * The console command description.
@@ -41,11 +41,12 @@ class PostToOracle extends Command
     public function handle()
     {
         // dd(date('m/d/Y-H:i:s'));
+        $filter = $this->option('idSummary') == 0 ? '' : " AND idSummary = ".$this->option('idSummary');
         $limit = $this->option('limit');
         // dd($limit);
 
         /* AMBIL DATA DARI TRANSAKSI SUMMARY */
-        $sqlBatch = "SELECT batch, idSummary FROM akunting_summary WHERE isPost = 0 LIMIT $limit";
+        $sqlBatch = "SELECT batch, idSummary FROM akunting_summary WHERE isPost = 0 $filter LIMIT $limit";
         $dataBatch = DB::connection('mysql')->select(DB::raw($sqlBatch));
         $stringDataBatch = "";
 
