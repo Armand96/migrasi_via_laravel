@@ -41,7 +41,7 @@ class PostToOracle extends Command
     public function handle()
     {
         // dd(date('m/d/Y-H:i:s'));
-        $filter = $this->option('idSummary') == 0 ? '' : " OR idSummary = ".$this->option('idSummary');
+        $filter = $this->option('idSummary') == 0 ? '' : " AND idSummary = ".$this->option('idSummary');
         $limit = $this->option('limit');
         // dd($limit);
 
