@@ -160,8 +160,10 @@ class PostToOracle extends Command
                 'Content-Type' => 'text/plain'
             );
 
+            $dateNows = date('Y-m-d H:i:s');
+
             $dataPost = array(
-                'BatchName' => date('m/d/Y-H:i:s'),
+                'BatchName' => date('m/d/Y-H:i:s', strtotime($dateNows)),
                 'CountLine' => count($dataBatchDetail),
                 'Journal' => $dataBatchDetail
             );
@@ -174,7 +176,7 @@ class PostToOracle extends Command
             $bodyResponse = json_decode($response->body());
 
             $batchOracleInsert = array(
-                'tanggalJam' => date('Y-m-d H:i:s'),
+                'tanggalJam' => date('Y-m-d H:i:s' ,strtotime($dateNows)),
                 'isStatus' => 0,
                 'sent' => '',
                 'response' => $response->body(),
