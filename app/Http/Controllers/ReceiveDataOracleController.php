@@ -558,7 +558,7 @@ class ReceiveDataOracleController extends Controller
                     "trxNumber" => $trxNumber,
                     "trxStatus" => $trxStatus,
                     "lineId" => $lineID,
-                    "trxDate" => date('Y-m-d H:i:s', strtotime($trxDate)),
+                    "trxDate" => date('Y-m-d', strtotime($trxDate)),
                     "errorMessage" => $message,
                     "statusError" => "ERROR",
                     "createdAt" => date('Y-m-d H:i:s')
