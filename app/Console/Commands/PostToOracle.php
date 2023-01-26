@@ -92,7 +92,11 @@ class PostToOracle extends Command
                             ELSE '000'
                         END AS CostCenter,
                         ct.coaOracle AS NaturalAccount,
-                        CASE WHEN tbp.productOracleValue IS NULL THEN '0000' ELSE productOracleValue END AS Product,
+                        CASE
+                            WHEN tbp.productOracleValue IS NULL THEN '0000'
+                            WHEN ct.accountType = 'Bank' THEN '0000'
+                            ELSE productOracleValue
+                        END AS Product,
                         RIGHT(coaCabang, 10) AS coaCabang,
                         '000' AS Future1,
                         '000' AS Future2,
