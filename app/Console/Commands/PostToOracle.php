@@ -74,7 +74,7 @@ class PostToOracle extends Command
                         DATE_FORMAT(dt.tanggal, '%d-%b-%y') AS TrxDate,
                         sm.batch,
                         CASE
-                            WHEN LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 1 THEN '999'
+                            WHEN LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 1 OR LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 9 THEN '999'
                             WHEN LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 2 THEN '002'
                             WHEN LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 3 THEN '003'
                             WHEN LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 4 THEN '004'
