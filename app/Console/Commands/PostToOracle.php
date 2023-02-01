@@ -135,7 +135,7 @@ class PostToOracle extends Command
                         LEFT JOIN realisasi_pettycash_detail rpd ON rpc.idRealisasiPettyCash = rpd.idRealisasiPettyCash
                         LEFT JOIN tblcostcenter tcc ON tcc.idCostCenter = rpd.idCostCenter
                     ) AS rpc ON rpc.kodeVoucher = kodeTransaksi
-                    WHERE dt.batch IN ($stringDataBatch)
+                    WHERE sm.idSummary IN ($stringDataBatch)
                 ) AS tblall";
 
             $dataBatchDetail = DB::connection('mysql')->select(DB::raw($sqlDetail));
