@@ -92,6 +92,7 @@ class PostToOracle extends Command
                             ELSE '000'
                         END AS CostCenter,
                         ct.coaOracle AS NaturalAccount,
+                        lineId AS LineID,
                         CASE
                             WHEN tbp.productOracleValue IS NULL THEN '0000'
                             WHEN ct.accountType = 'Bank' THEN '0000'
@@ -152,7 +153,7 @@ class PostToOracle extends Command
                 $rowIndex = 1;
                 foreach ($dataBatchDetail as $key => $value) {
                     if($value->batch == $bVal->batch) {
-                        $dataBatchDetail[$key]->LineID = intval($value->batch . $rowIndex);
+                        if($dataBatchDetail[$key]->LineID == null) $dataBatchDetail[$key]->LineID = intval($value->batch . $rowIndex);
                         $rowIndex++;
                     }
                     if($bIndex == 0) unset($dataBatchDetail[$key]->coaCabang);
@@ -172,9 +173,8 @@ class PostToOracle extends Command
                 'Journal' => $dataBatchDetail
             );
 
-            // dd($dataPost);
-
             // Storage::put('public/sentdata.json', json_encode($dataPost));
+            // dd($dataPost);
 
             $response = Http::withHeaders($headers)->post(env('URL_ORACLE'), $dataPost);
             $bodyResponse = json_decode($response->body());
