@@ -125,8 +125,7 @@ class PostToOracle extends Command
                     LEFT JOIN (
                         SELECT noVoucher, CASE WHEN kodeCostCenter IS NULL THEN '000' ELSE kodeCostCenter END AS kodeCostCenter
                         FROM fa_rekonbank rb
-                        LEFT JOIN fa_rekonbank_detail rbd ON rb.idRekonBank = rbd.idRekonBank
-                        LEFT JOIN tblcostcenter tcc ON tcc.idCostCenter = rbd.idCostCenter
+                        LEFT JOIN tblcostcenter tcc ON tcc.idCostCenter = rb.idCostCenter
                     ) AS rb ON rb.noVoucher = kodeTransaksi
                     LEFT JOIN (
                         SELECT kodeVoucher, CASE WHEN kodeCostCenter IS NULL THEN '000' ELSE kodeCostCenter END AS kodeCostCenter
