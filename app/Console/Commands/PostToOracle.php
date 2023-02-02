@@ -131,8 +131,7 @@ class PostToOracle extends Command
                     LEFT JOIN (
                         SELECT kodeVoucher, CASE WHEN kodeCostCenter IS NULL THEN '000' ELSE kodeCostCenter END AS kodeCostCenter
                         FROM realisasi_pettycash rpc
-                        LEFT JOIN realisasi_pettycash_detail rpd ON rpc.idRealisasiPettyCash = rpd.idRealisasiPettyCash
-                        LEFT JOIN tblcostcenter tcc ON tcc.idCostCenter = rpd.idCostCenter
+                        LEFT JOIN tblcostcenter tcc ON tcc.idCostCenter = rpc.idCostCenter
                     ) AS rpc ON rpc.kodeVoucher = kodeTransaksi
                     WHERE sm.idSummary IN ($stringDataBatch)
                 ) AS tblall";
