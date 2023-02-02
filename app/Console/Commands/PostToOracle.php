@@ -173,7 +173,7 @@ class PostToOracle extends Command
                 'Journal' => $dataBatchDetail
             );
 
-            // Storage::put('public/sentdata.json', json_encode($dataPost));
+            Storage::put('public/sentdata.json', json_encode($dataPost));
             // dd($dataPost);
 
             $response = Http::withHeaders($headers)->post(env('URL_ORACLE'), $dataPost);
