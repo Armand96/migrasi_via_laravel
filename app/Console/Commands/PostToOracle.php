@@ -40,7 +40,6 @@ class PostToOracle extends Command
      */
     public function handle()
     {
-        // dd(date('m/d/Y-H:i:s'));
         $filter = $this->option('idSummary') == 0 ? '' : " AND idSummary = ".$this->option('idSummary');
         $limit = $this->option('limit');
         // dd($limit);
@@ -54,7 +53,7 @@ class PostToOracle extends Command
         {
             /* DIJADIKAN SEBAGAI PARAMETER IN */
             foreach ($dataBatch as $key => $value) {
-                $stringDataBatch .= "$value->batch,";
+                $stringDataBatch .= "$value->idSummary,";
             }
             $stringDataBatch = substr($stringDataBatch, 0, -1);
 
@@ -113,7 +112,7 @@ class PostToOracle extends Command
                         1 AS ExchangeRate,
                         dt.keterangan AS BankReference
                     FROM `akunting_detail` dt
-                    LEFT JOIN akunting_summary sm ON sm.batch = dt.batch
+                    LEFT JOIN akunting_summary sm ON sm.idSummary = dt.idSummary
                     LEFT JOIN tblproduk tbp ON tbp.idProduk = sm.idProduk
                     LEFT JOIN acc_jenisjurnal jj ON jj.idJenisJurnal = sm.idJenisJurnal
                     LEFT JOIN tblcoatemplate ct ON ct.idCoa = dt.idCoa
@@ -173,8 +172,8 @@ class PostToOracle extends Command
                 'Journal' => $dataBatchDetail
             );
 
-            Storage::put('public/sentdata.json', json_encode($dataPost));
-            // dd($dataPost);
+            $fileNamePath = "public/data_oracle_".date("Y_m_d_H_i_s").".json";
+            Storage::put($fileNamePath, json_encode($dataPost));
 
             $response = Http::withHeaders($headers)->post(env('URL_ORACLE'), $dataPost);
             $bodyResponse = json_decode($response->body());
@@ -182,7 +181,7 @@ class PostToOracle extends Command
             $batchOracleInsert = array(
                 'tanggalJam' => date('Y-m-d H:i:s' ,strtotime($dateNows)),
                 'isStatus' => 0,
-                'sent' => '',
+                'sent' => $fileNamePath,
                 'response' => $response->body(),
             );
 
