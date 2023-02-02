@@ -85,6 +85,7 @@ class PostToOracle extends Command
                         CONCAT('0', LEFT(coaCabang, 3)) AS Outlet,
                         1 AS TipePembiayaan,
                         CASE
+                            WHEN ct.accountType = 'Bank' THEN '000'
                             WHEN SUBSTR(kodeTransaksi, 6, 3) = 'PTC' THEN rpc.kodeCostCenter
                             WHEN SUBSTR(kodeTransaksi, 6, 3) = 'ADV' THEN adv.kodeCostCenter
                             WHEN SUBSTR(kodeTransaksi, 6, 3) = 'RKN' THEN rb.kodeCostCenter
@@ -93,8 +94,8 @@ class PostToOracle extends Command
                         ct.coaOracle AS NaturalAccount,
                         lineId AS LineID,
                         CASE
-                            WHEN tbp.productOracleValue IS NULL THEN '0000'
                             WHEN ct.accountType = 'Bank' THEN '0000'
+                            WHEN tbp.productOracleValue IS NULL THEN '0000'
                             ELSE productOracleValue
                         END AS Product,
                         RIGHT(coaCabang, 10) AS coaCabang,
