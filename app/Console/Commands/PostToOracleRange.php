@@ -43,7 +43,7 @@ class PostToOracleRange extends Command
     {
         $dateNows = date('Y-m-d H:i:s');
         $idSumAwal = $this->option('idAwal') == 0 ? '' : " AND idSummary >= ".$this->option('idAwal');
-        $idSumAkhir = $this->option('idAKhir') == 0 ? '' : " AND idSummary <= ".$this->option('idAKhir');
+        $idSumAkhir = $this->option('idAkhir') == 0 ? '' : " AND idSummary <= ".$this->option('idAkhir');
         // dd($limit);
 
         try {
