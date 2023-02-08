@@ -48,8 +48,8 @@ class PostToOracleRange extends Command
 
         try {
             /* AMBIL DATA DARI TRANSAKSI SUMMARY */
-            // $sqlBatch = "SELECT batch, idSummary FROM akunting_summary WHERE isPost = 0 $filter LIMIT $limit";
             $sqlBatch = "SELECT batch, idSummary FROM akunting_summary WHERE isPost = 0 $idSumAwal $idSumAkhir";
+            // $sqlBatch = "SELECT batch, idSummary FROM akunting_summary WHERE isPost = 0 AND idSummary >= 380212 AND idSummary <= 380710";
             $dataBatch = DB::connection('mysql')->select(DB::raw($sqlBatch));
             $stringDataBatch = "";
             echo "query awal \n";
@@ -182,14 +182,12 @@ class PostToOracleRange extends Command
                 $response = Http::withHeaders($headers)->post(env('URL_ORACLE'), $dataPost);
                 $bodyResponse = json_decode($response->body());
 
-                if($response->status() == 200) {
-
-                } else {
+                if(!isset($bodyResponse->status)) {
                     Log::alert($bodyResponse);
-                    dd($bodyResponse);
+                    DB::rollBack();
+                    return 1;
+                    dd('error');
                 }
-
-
 
                 $batchOracleInsert = array(
                     'tanggalJam' => date('Y-m-d H:i:s' ,strtotime($dateNows)),

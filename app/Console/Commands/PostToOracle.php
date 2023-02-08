@@ -49,8 +49,10 @@ class PostToOracle extends Command
         try {
             /* AMBIL DATA DARI TRANSAKSI SUMMARY */
             $sqlBatch = "SELECT batch, idSummary FROM akunting_summary WHERE isPost = 0 $filter LIMIT $limit";
+            // $sqlBatch = "SELECT batch, idSummary FROM akunting_summary WHERE isPost = 0 AND idSummary >= 380212 AND idSummary <= 380710";
             $dataBatch = DB::connection('mysql')->select(DB::raw($sqlBatch));
             $stringDataBatch = "";
+            echo "query awal \n";
 
             if(count($dataBatch)>0)
             {
@@ -145,6 +147,7 @@ class PostToOracle extends Command
 
                 DB::beginTransaction();
 
+                echo "LINE ID \n";
                 foreach ($dataBatch as $bIndex => $bVal) {
                     $updateData = array(
                         'isPost' => 1,
@@ -175,11 +178,16 @@ class PostToOracle extends Command
                 $fileNamePath = "public/data_oracle_".date("Y_m_d_H_i_s").".json";
                 Storage::put($fileNamePath, json_encode($dataPost));
 
+                echo "Kirim Data \n";
                 $response = Http::withHeaders($headers)->post(env('URL_ORACLE'), $dataPost);
-
-                if($response->status() == 200)
-
                 $bodyResponse = json_decode($response->body());
+
+                if(!isset($bodyResponse->status)) {
+                    Log::alert($bodyResponse);
+                    DB::rollBack();
+                    return 1;
+                    dd('error');
+                }
 
                 $batchOracleInsert = array(
                     'tanggalJam' => date('Y-m-d H:i:s' ,strtotime($dateNows)),
@@ -198,6 +206,7 @@ class PostToOracle extends Command
 
                 // dd($lastInsertBatchID);
 
+                echo "MASUKIN DATA KE DB \n";
                 /* UPDATE AKUNTING_DETAIL */
                 foreach ($dataBatchDetail as $key => $value) {
                     $dataUpdate = array(
