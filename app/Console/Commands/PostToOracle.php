@@ -40,6 +40,7 @@ class PostToOracle extends Command
      */
     public function handle()
     {
+        $dateNows = date('Y-m-d H:i:s');
         $filter = $this->option('idSummary') == 0 ? '' : " AND idSummary = ".$this->option('idSummary');
         $limit = $this->option('limit');
         // dd($limit);
@@ -145,7 +146,7 @@ class PostToOracle extends Command
             foreach ($dataBatch as $bIndex => $bVal) {
                 $updateData = array(
                     'isPost' => 1,
-                    'tanggalPost' => date('Y-m-d H:i:s')
+                    'tanggalPost' => $dateNows
                 );
                 DB::connection('mysql')->table('akunting_summary')->where('idSummary', $bVal->idSummary)->update($updateData);
                 $rowIndex = 1;
@@ -163,8 +164,6 @@ class PostToOracle extends Command
                 'Content-Type' => 'text/plain'
             );
 
-            $dateNows = date('Y-m-d H:i:s');
-
             $dataPost = array(
                 'BatchName' => date('m/d/Y-H:i:s', strtotime($dateNows)),
                 'CountLine' => count($dataBatchDetail),
@@ -175,6 +174,9 @@ class PostToOracle extends Command
             Storage::put($fileNamePath, json_encode($dataPost));
 
             $response = Http::withHeaders($headers)->post(env('URL_ORACLE'), $dataPost);
+
+            if($response->status() == 200)
+
             $bodyResponse = json_decode($response->body());
 
             $batchOracleInsert = array(
