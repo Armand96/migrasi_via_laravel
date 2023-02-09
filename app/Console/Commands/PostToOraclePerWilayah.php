@@ -214,13 +214,14 @@ class PostToOraclePerWilayah extends Command
                 if($bodyResponse->status == 'success') $batchOracleInsert['isStatus'] = 1;
                 else $batchOracleInsert['isStatus'] = 2;
 
+                echo "MASUKIN DATA KE DB BATCH\n";
                 /* INSERT TO DB BATCH ORACLE */
                 $dataBatch = DB::connection('mysql')->table('acc_batch_oracle')->insertGetId($batchOracleInsert);
                 $lastInsertBatchID = DB::connection('mysql')->table('acc_batch_oracle')->select('idBatch')->orderBy('idBatch', 'desc')->first();
 
                 // dd($lastInsertBatchID);
 
-                echo "MASUKIN DATA KE DB \n";
+                echo "MASUKIN DATA KE DB DETAIL\n";
                 /* UPDATE AKUNTING_DETAIL */
                 foreach ($dataBatchDetail as $key => $value) {
                     $dataUpdate = array(
