@@ -53,6 +53,7 @@ class PostToOracleAllWilayah extends Command
         {
             foreach ($dataWilayah as $key => $value) {
                 Artisan::call("post:oracle_wilayah --limit=$limit --wilayah=$value->filterWilayah");
+                sleep(5);
             }
         }
 
