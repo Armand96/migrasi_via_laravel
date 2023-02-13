@@ -156,19 +156,17 @@ class PostToOraclePerWilayah extends Command
                     ) AS tblall";
 
                 $dataBatchDetail = DB::connection('mysql')->select(DB::raw($sqlDetail));
-                // Storage::disk('public')->put('batchdata.json', json_encode($dataBatchDetail));
-                // dd($dataBatchDetail);
-
-                DB::beginTransaction();
 
                 echo "LINE ID \n";
+
+                $batchTemp = [];
+                $batchDetailTemp = [];
+
                 foreach ($dataBatch as $bIndex => $bVal) {
-                    $updateData = array(
-                        'isPost' => 1,
-                        'tanggalPost' => $dateNows
-                    );
-                    DB::connection('mysql')->table('akunting_summary')->where('idSummary', $bVal->idSummary)->update($updateData);
+                    $bVal->isPost = 1;
+                    $bVal->tanggalPost = $dateNows;
                     $rowIndex = 1;
+                    array_push($batchTemp, (array) $bVal);
                     foreach ($dataBatchDetail as $key => $value) {
                         if($value->batch == $bVal->batch) {
                             if($dataBatchDetail[$key]->LineID == null) $dataBatchDetail[$key]->LineID = intval($value->batch . $rowIndex);
@@ -177,6 +175,23 @@ class PostToOraclePerWilayah extends Command
                         if($bIndex == 0) unset($dataBatchDetail[$key]->coaCabang);
                     }
                 }
+
+                foreach ($dataBatchDetail as $key => $value) {
+                    $dataUpdateDetail = array(
+                        'idDetail' => $value->idDetail,
+                        'lineId' => $dataBatchDetail[$key]->LineID,
+                        'statusOracle' => 0,
+                        'idBatch' => 0,
+                    );
+                    array_push($batchDetailTemp, $dataUpdateDetail);
+                }
+
+                DB::beginTransaction();
+
+                DB::connection('mysql')->table('akunting_summary_oracle_temp')->insert($batchTemp);
+                DB::connection('mysql')->table('akunting_detail_oracle_temp')->insert($batchDetailTemp);
+
+                DB::commit();
 
                 $headers = array(
                     'Authorization' => env('AUTH_KEY_ORACLE'),
@@ -198,7 +213,8 @@ class PostToOraclePerWilayah extends Command
 
                 if(!isset($bodyResponse->status)) {
                     Log::alert($bodyResponse);
-                    DB::rollBack();
+                    Log::alert('pengiriman tidak sukses');
+                    $this->deleteDataTemp();
                     return 1;
                     dd('error');
                 }
@@ -207,7 +223,7 @@ class PostToOraclePerWilayah extends Command
                     'tanggalJam' => date('Y-m-d H:i:s' ,strtotime($dateNows)),
                     'isStatus' => 0,
                     'sent' => $fileNamePath,
-                    'response' => $response->body(),
+                    'response' => $response,
                 );
 
                 /* SET RESPONSE */
@@ -219,19 +235,25 @@ class PostToOraclePerWilayah extends Command
                 $dataBatch = DB::connection('mysql')->table('acc_batch_oracle')->insertGetId($batchOracleInsert);
                 $lastInsertBatchID = DB::connection('mysql')->table('acc_batch_oracle')->select('idBatch')->orderBy('idBatch', 'desc')->first();
 
-                // dd($lastInsertBatchID);
-
                 echo "MASUKIN DATA KE DB DETAIL\n";
                 /* UPDATE AKUNTING_DETAIL */
-                foreach ($dataBatchDetail as $key => $value) {
-                    $dataUpdate = array(
-                        'lineId' => $value->LineID,
-                        'statusOracle' => $batchOracleInsert['isStatus'],
-                        'idBatch' => $lastInsertBatchID->idBatch
-                    );
-                    DB::connection('mysql')->table('akunting_detail')->where('idDetail', $value->idDetail)->update($dataUpdate);
-                    // unset($dataBatchDetail[$key]->batch);
-                }
+                $sqlUpdateBatch = "UPDATE akunting_summary a
+                INNER JOIN akunting_summary_oracle_temp b ON a.idSummary = b.idSummary
+                SET a.isPost = b.isPost, a.tanggalPost = b.tanggalPost";
+
+                $sqlUpdateDetail = "UPDATE akunting_detail a
+                INNER JOIN akunting_detail_oracle_temp b ON a.idDetail = b.idDetail
+                SET a.idBatch = $lastInsertBatchID->idBatch, a.statusOracle = 1, a.lineId = b.lineId;";
+
+                $sqlDeleteTempTableBatch = "DELETE FROM akunting_summary_oracle_temp";
+                $sqlDeleteTempTableDetail = "DELETE FROM akunting_detail_oracle_temp;";
+
+                DB::beginTransaction();
+
+                DB::connection('mysql')->update($sqlUpdateBatch);
+                DB::connection('mysql')->update($sqlUpdateDetail);
+                DB::connection('mysql')->delete($sqlDeleteTempTableBatch);
+                DB::connection('mysql')->delete($sqlDeleteTempTableDetail);
 
                 DB::commit();
 
@@ -242,9 +264,18 @@ class PostToOraclePerWilayah extends Command
                 echo "tidak ada record \n";
             }
         } catch (\Throwable $th) {
+            $this->deleteDataTemp();
             throw $th;
         }
 
         return 0;
+    }
+
+    function deleteDataTemp()
+    {
+        $sqlDeleteTempTableBatch = "DELETE FROM akunting_summary_oracle_temp";
+        $sqlDeleteTempTableDetail = "DELETE FROM akunting_detail_oracle_temp;";
+        DB::connection('mysql')->delete($sqlDeleteTempTableBatch);
+        DB::connection('mysql')->delete($sqlDeleteTempTableDetail);
     }
 }
