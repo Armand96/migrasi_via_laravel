@@ -43,7 +43,7 @@ class ReceiveDataOracleController extends Controller
                         {
                             DB::rollback();
                             $responseMessage['Message'] = "Nomor Transaksi ".$dataReq['TrxNumber']." dan status ".$dataReq["TrxStatus"]." sudah ada";
-                            $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                            $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'], $dataReq['Source']);
                             return response()->json($responseMessage);
                         }
 
@@ -59,7 +59,7 @@ class ReceiveDataOracleController extends Controller
                             {
                                 DB::rollback();
                                 $responseMessage['Message'] = "Nomor Transaksi ".$dataReq['TrxNumber']." tidak bisa CANCELED, status CREATED belum ada, ";
-                                $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                                $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'], $dataReq['Source']);
                                 return response()->json($responseMessage);
                             }
                         }
@@ -77,7 +77,7 @@ class ReceiveDataOracleController extends Controller
                             {
                                 DB::rollback();
                                 $responseMessage['Message'] = "Kode Bank Keluar ".$dataReq['BankOut']." di Cabang ".$dataReq['Outlet']." Tidak ada";
-                                $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                                $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'], $dataReq['Source']);
                                 return response()->json($responseMessage);
                             }
 
@@ -91,7 +91,7 @@ class ReceiveDataOracleController extends Controller
                             {
                                 DB::rollback();
                                 $responseMessage['Message'] = "Kode Bank Masuk ".$dataReq['BankIn']." di Cabang ".$dataReq['Outlet']." Tidak ada";
-                                $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                                $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'], $dataReq['Source']);
                                 return response()->json($responseMessage);
                             }
 
@@ -126,7 +126,7 @@ class ReceiveDataOracleController extends Controller
 
                             DB::rollback();
                             $responseMessage['Message'] = $stringMessage;
-                            $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                            $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'], $dataReq['Source']);
                             return response()->json($responseMessage);
                         }
 
@@ -191,7 +191,7 @@ class ReceiveDataOracleController extends Controller
                         {
                             DB::rollBack();
                             $responseMessage ['Message']= $message;
-                            $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                            $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'], $dataReq['Source']);
                             return response()->json($responseMessage);
                         }
 
@@ -224,7 +224,7 @@ class ReceiveDataOracleController extends Controller
                         {
                             DB::rollBack();
                             $responseMessage ['Message']= $message;
-                            $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                            $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'], $dataReq['Source']);
                             return response()->json($responseMessage);
                         }
 
@@ -243,7 +243,7 @@ class ReceiveDataOracleController extends Controller
                         {
                             DB::rollBack();
                             $responseMessage ['Message']= $message;
-                            $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                            $this->fail($responseMessage['Message'], $dataReq['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'], $dataReq['Source']);
                             return response()->json($responseMessage);
                         }
 
@@ -265,7 +265,7 @@ class ReceiveDataOracleController extends Controller
                         if($isExist != null)
                         {
                             $responseMessage['Message'] = "Nomor Transaksi ".$dataReq['TrxNumber']." dan status ".$dataReq["TrxStatus"]." sudah ada";
-                            $this->fail($responseMessage['Message'], 0, $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                            $this->fail($responseMessage['Message'], 0, $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'], $dataReq['Source']);
                             return response()->json($responseMessage);
                         }
 
@@ -280,7 +280,7 @@ class ReceiveDataOracleController extends Controller
                             {
                                 DB::rollback();
                                 $responseMessage['Message'] = "Nomor Transaksi ".$dataReq['TrxNumber']." tidak bisa CANCELED, status CREATED belum ada, ";
-                                $this->fail($responseMessage['Message'], 0, $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                                $this->fail($responseMessage['Message'], 0, $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'],$dataReq['Source']);
                                 return response()->json($responseMessage);
                             }
                         }
@@ -302,7 +302,7 @@ class ReceiveDataOracleController extends Controller
                             {
                                 DB::rollBack();
                                 $responseMessage['Message'] = "Bank ".$dataReq['BankID']." di Cabang ".$dataReq['Outlet']." Tidak ada";
-                                $this->fail($responseMessage['Message'], $dataReq['Detail'][0]['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                                $this->fail($responseMessage['Message'], $dataReq['Detail'][0]['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'], $dataReq['Source']);
                                 return response()->json($responseMessage);
                             }
 
@@ -333,7 +333,7 @@ class ReceiveDataOracleController extends Controller
                             $stringMessage = substr($stringMessage, 0, -1);
 
                             $responseMessage['Message'] = $stringMessage;
-                            $this->fail($responseMessage['Message'], $dataReq['Detail'][0]['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                            $this->fail($responseMessage['Message'], $dataReq['Detail'][0]['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'], $dataReq['Source']);
                             return response()->json($responseMessage);
                         }
 
@@ -389,7 +389,7 @@ class ReceiveDataOracleController extends Controller
                             else {
                                 DB::rollBack();
                                 $responseMessage['Message'] = "TipeUang Tidak Ada";
-                                $this->fail($responseMessage['Message'], $data['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                                $this->fail($responseMessage['Message'], $data['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'], $dataReq['Source']);
                                 return response()->json($responseMessage);
                             }
 
@@ -429,7 +429,7 @@ class ReceiveDataOracleController extends Controller
                             {
                                 DB::rollBack();
                                 $responseMessage ['Message']= $message;
-                                $this->fail($responseMessage['Message'], $data['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                                $this->fail($responseMessage['Message'], $data['LineID'], $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'], $dataReq['Source']);
                                 return response()->json($responseMessage);
                             }
 
@@ -463,7 +463,7 @@ class ReceiveDataOracleController extends Controller
                 $responseMessage['Message'] = $th->getMessage(). " in line ". $th->getLine();
                 Log::error($th->getMessage(). " in line ". $th->getLine());
                 $lineId = isset($dataReq['LineID']) ? $dataReq['LineID'] : 0;
-                $this->fail($responseMessage['Message'], $lineId, $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate']);
+                $this->fail($responseMessage['Message'], $lineId, $dataReq['TrxNumber'], $dataReq['TrxStatus'], $dataReq['TrxDate'], $dataReq['Source']);
                 // throw $th;
             }
         }
@@ -545,7 +545,7 @@ class ReceiveDataOracleController extends Controller
         DB::connection('mysql')->table('report_banktransaksi')->insert($data);
     }
 
-    public function fail($message, $lineID, $trxNumber, $trxStatus, $trxDate)
+    public function fail($message, $lineID, $trxNumber, $trxStatus, $trxDate, $source)
     {
         try {
             $data = DB::connection('mysql')->table('acc_in_oracle_fail')
