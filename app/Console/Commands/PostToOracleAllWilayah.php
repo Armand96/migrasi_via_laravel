@@ -13,7 +13,7 @@ class PostToOracleAllWilayah extends Command
      *
      * @var string
      */
-    protected $signature = 'post:oracle_all {--limit=100}';
+    protected $signature = 'post:oracle_all {--limit=100} {--tanggal=""}';
 
     /**
      * The console command description.
@@ -40,6 +40,7 @@ class PostToOracleAllWilayah extends Command
     public function handle()
     {
         $limit = $this->option('limit');
+        $tanggal = $this->option('tanggal');
 
         $sqlWilayah = "SELECT
             kodeCabang,
@@ -52,7 +53,7 @@ class PostToOracleAllWilayah extends Command
         if(count($dataWilayah))
         {
             foreach ($dataWilayah as $key => $value) {
-                Artisan::call("post:oracle_wilayah --limit=$limit --wilayah=$value->filterWilayah");
+                Artisan::call("post:oracle_wilayah --limit=$limit --wilayah=$value->filterWilayah --tanggal=$tanggal");
                 sleep(5);
             }
         }

@@ -15,7 +15,7 @@ class PostToOraclePerWilayah extends Command
      *
      * @var string
      */
-    protected $signature = 'post:oracle_wilayah {--limit=100} {--wilayah=0}';
+    protected $signature = 'post:oracle_wilayah {--limit=100} {--wilayah=0} {--tanggal=""}';
 
     /**
      * The console command description.
@@ -53,6 +53,9 @@ class PostToOraclePerWilayah extends Command
 
         $dateNows = date('Y-m-d H:i:s');
         $limit = $this->option('limit');
+        $tglTrx = $this->option('tanggal');
+        $filterTanggal = $this->option('tanggal') == ''? '' : "AND aks.tanggal = '$tglTrx'";
+        // dd($filterTanggal, $tglTrx);
         $filterWilayah = $this->option('wilayah') == 0? '' : "AND (LEFT(CONVERT(coaCabang, UNSIGNED), 1) = ".$this->option('wilayah').")";
         if($this->option('wilayah') == 9) $filterWilayah = "AND (LEFT(CONVERT(coaCabang, UNSIGNED), 1) = ".$this->option('wilayah')." OR LEFT(CONVERT(coaCabang, UNSIGNED), 1) = 1)";
 
@@ -62,7 +65,7 @@ class PostToOraclePerWilayah extends Command
                 DISTINCT aks.batch, aks.idSummary
             FROM `akunting_summary` aks
             INNER JOIN akunting_detail akd ON akd.idSummary = aks.idSummary
-            WHERE isPost = 0 $filterWilayah LIMIT $limit";
+            WHERE isPost = 0 $filterWilayah $filterTanggal LIMIT $limit";
 
             $dataBatch = DB::connection('mysql')->select(DB::raw($sqlBatch));
             $stringDataBatch = "";
