@@ -15,7 +15,7 @@ class PostToOraclePerWilayah extends Command
      *
      * @var string
      */
-    protected $signature = 'post:oracle_wilayah {--limit=100} {--wilayah=0} {--tanggal=""}';
+    protected $signature = 'post:oracle_wilayah {--limit=1000} {--wilayah=0} {--tanggal=""}';
 
     /**
      * The console command description.

@@ -13,7 +13,7 @@ class PostToOracleAllWilayah extends Command
      *
      * @var string
      */
-    protected $signature = 'post:oracle_all {--limit=100} {--tanggal=""}';
+    protected $signature = 'post:oracle_all {--limit=5000} {--tanggal=""}';
 
     /**
      * The console command description.
@@ -40,7 +40,7 @@ class PostToOracleAllWilayah extends Command
     public function handle()
     {
         $limit = $this->option('limit');
-        $tanggal = $this->option('tanggal');
+        $tanggal = $this->option('tanggal') == ''? date('Y-m-d') : $this->option('tanggal');
 
         $sqlWilayah = "SELECT
             kodeCabang,
