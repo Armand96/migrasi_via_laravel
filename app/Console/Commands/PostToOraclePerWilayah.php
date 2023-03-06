@@ -146,10 +146,10 @@ class PostToOraclePerWilayah extends Command
                             LEFT JOIN tblcostcenter tcc ON tcc.idCostCenter = adt.idCostCenter
                         ) AS adv ON adv.kodeVoucher = kodeTransaksi
                         LEFT JOIN (
-                            SELECT noVoucher, CASE WHEN kodeCostCenter IS NULL THEN '000' ELSE kodeCostCenter END AS kodeCostCenter
+                            SELECT idRekonBank, CASE WHEN kodeCostCenter IS NULL THEN '000' ELSE kodeCostCenter END AS kodeCostCenter
                             FROM fa_rekonbank rb
                             LEFT JOIN tblcostcenter tcc ON tcc.idCostCenter = rb.idCostCenter
-                        ) AS rb ON rb.noVoucher = kodeTransaksi
+                        ) AS rb ON rb.idRekonBank = sm.idRekonBank
                         LEFT JOIN (
                             SELECT kodeVoucher, CASE WHEN kodeCostCenter IS NULL THEN '000' ELSE kodeCostCenter END AS kodeCostCenter
                             FROM realisasi_pettycash rpc
